@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HP-AI-Usage - Giám Sát Hạn Mức AI Toàn Diện</title>
+    <meta name="description" content="Bảng điều khiển theo dõi hạn mức sử dụng AI cho Claude, ChatGPT, Gemini, AntiGravity và Perplexity trên Windows.">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0B0F19">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-background">
+        <div class="bg-glow glow-1"></div>
+        <div class="bg-glow glow-2"></div>
+    </div>
+
+    <div class="app-container" id="app-wrapper">
+        <!-- Thanh điều hướng tinh gọn (Compact Header) -->
+        <header class="top-nav" id="main-header">
+            <div class="brand-group">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>HP-AI-Usage</h1>
+                    <span class="platform-badge">Windows</span>
+                </div>
+            </div>
+
+            <!-- Thống kê nhanh tích hợp ngay trên thanh tiêu đề -->
+            <div class="header-stats" id="header-stats-bar">
+                <div class="stat-pill" id="pill-providers" title="Số lượng nhà cung cấp sẵn sàng">
+                    <span class="stat-pill-dot active"></span>
+                    <span id="active-providers-count">— / 5</span>
+                </div>
+                <div class="stat-pill" id="pill-metrics" title="Tổng số hạn mức đang giám sát">
+                    <span id="active-metrics-count">Đang tải…</span>
+                </div>
+                <div class="stat-pill warning hidden" id="pill-warning-box" title="Chỉ số đang ở mức cao">
+                    <span class="warning-icon">⚠️</span>
+                    <span id="warning-metrics-count">2 cảnh báo</span>
+                </div>
+            </div>
+
+            <div class="nav-controls">
+                <!-- Chuyển đổi ngôn ngữ Tiếng Việt / Tiếng Anh -->
+                <div class="lang-toggle-group" role="group" aria-label="Ngôn ngữ / Language">
+                    <button type="button" id="lang-vi-btn" class="btn-lang active" title="Tiếng Việt" aria-pressed="true">VI</button>
+                    <button type="button" id="lang-en-btn" class="btn-lang" title="English" aria-pressed="false">EN</button>
+                </div>
+
+                <!-- Chuyển đổi chế độ hiển thị (Lưới 1 màn hình vs Bảng bên) -->
+                <div class="view-toggle-group" role="group" aria-label="Chế độ xem">
+                    <button type="button" id="view-grid-btn" class="btn-toggle active" title="Hiển thị lưới (Grid View)" aria-pressed="true">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        <span id="text-view-grid">Lưới</span>
+                    </button>
+                    <button type="button" id="view-panel-btn" class="btn-toggle" title="Thu gọn thành bảng bên (Side Panel View)" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <path d="M15 3v18"/>
+                        </svg>
+                        <span id="text-view-panel">Bảng bên</span>
+                    </button>
+                </div>
+
+                <div class="status-indicator">
+                    <span class="pulse-dot" id="connection-status-dot" aria-hidden="true"></span>
+                    <span id="last-updated-text" class="status-text" aria-live="polite">Đang kết nối...</span>
+                </div>
+
+                <button type="button" id="refresh-btn" class="btn btn-secondary btn-compact" title="Làm mới dữ liệu tức thì" aria-label="Làm mới">
+                    <svg class="icon-spin-target" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+                    </svg>
+                    <span id="btn-refresh-text">Làm mới</span>
+                </button>
+
+                <!-- Nút ghim Tiện ích thu nhỏ (Always-on-Top Widget) -->
+                <button type="button" id="btn-open-pip-widget" class="btn btn-primary btn-compact" title="Mở tiện ích ghim trên cùng" aria-label="Ghim Widget">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <rect x="11" y="8" width="9" height="7" rx="1" fill="currentColor"/>
+                    </svg>
+                    <span id="btn-pip-text">Ghim Widget</span>
+                </button>
+
+                <button type="button" id="settings-btn" class="btn btn-ghost" title="Cài đặt khóa API" aria-label="Cài đặt">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dải cảnh báo mỏng (Slim Alert Banner) -->
+        <div id="urgent-alert" class="urgent-alert-slim hidden" role="alert">
+            <span id="urgent-alert-badge" class="alert-badge">CẢNH BÁO HẠN MỨC</span>
+            <span id="urgent-alert-text" class="alert-text">Đang kiểm tra chỉ số...</span>
+        </div>
+
+        <!-- Lưới thẻ dịch vụ tinh gọn (Providers Container) -->
+        <main class="providers-container view-mode-grid" id="providers-container">
+            <div class="loading-state">
+                <div class="loader-spinner"></div>
+                <p id="loading-text">Đang nạp dữ liệu hạn mức từ máy tính của bạn...</p>
+            </div>
+        </main>
+
+        <!-- Chân trang tối giản (Footer) -->
+        <footer class="app-footer">
+            <div class="footer-info">
+                <span><code id="footer-host">127.0.0.1:6736</code></span>
+                <span class="separator">•</span>
+                <span id="footer-local-note">Dữ liệu đọc nội bộ an toàn (Local-only)</span>
+                <span class="separator">•</span>
+                <span id="view-mode-hint">Chế độ xem: Toàn màn hình</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Hộp thoại Cài đặt (Settings Modal) -->
+    <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-card" tabindex="-1">
+            <div class="modal-header">
+                <h2 id="modal-title">Cài đặt cấu hình (Settings)</h2>
+                <button type="button" id="modal-close-btn" class="btn-close" aria-label="Đóng">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-desc" class="modal-desc">Cấu hình thêm các khóa giao diện lập trình ứng dụng (API key) để theo dõi. Thông tin được lưu an toàn trong tệp <code>.env</code> cục bộ.</p>
+                
+                <div class="form-group">
+                    <label id="label-pplx-key" for="input-perplexity-key">Khóa API Perplexity (PERPLEXITY_API_KEY):</label>
+                    <input type="password" id="input-perplexity-key" placeholder="pplx-..." autocomplete="off">
+                    <small>Lấy tại: <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener">Perplexity API Settings</a></small>
+                </div>
+
+                <div class="form-group">
+                    <label id="label-gemini-key" for="input-gemini-key">Khóa API Google Gemini (GEMINI_API_KEY):</label>
+                    <input type="password" id="input-gemini-key" placeholder="AIzaSy..." autocomplete="off">
+                    <small id="note-gemini-key">Hiện chưa được sử dụng: hạn mức Gemini đang đọc qua AntiGravity IDE. Khóa này chỉ được lưu sẵn cho lần mở rộng sau.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Hủy</button>
+                <button type="button" id="modal-save-btn" class="btn btn-primary">Lưu cấu hình</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông báo nổi (Toast) -->
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script src="usage-ui.js"></script>
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

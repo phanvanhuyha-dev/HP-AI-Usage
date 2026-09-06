@@ -1,0 +1,26 @@
+{
+  "name": "hp-ai-usage",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "description": "Bảng điều khiển theo dõi hạn mức sử dụng (usage monitor) cho Claude, ChatGPT, Gemini, AntiGravity và Perplexity trên Windows",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test-ui-model.js",
+    "test:scanners": "node test-scanners.js"
+  },
+  "keywords": [
+    "hp-ai-usage",
+    "usage-monitor",
+    "claude",
+    "chatgpt",
+    "antigravity",
+    "gemini",
+    "perplexity"
+  ],
+  "author": "",
+  "license": "MIT"
+}

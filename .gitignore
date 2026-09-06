@@ -1,0 +1,32 @@
+# Môi trường và bí mật bảo mật (BẮT BUỘC)
+.env
+.env.local
+*.key
+*.pem
+*.token
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Bộ nhớ đệm và tệp tạm
+.cache/
+tmp/
+scratch/
+.env.tmp-*
+
+# Kết quả biên dịch thanh tác vụ (dựng lại bằng build.bat)
+HP-AI-Usage.exe
+HP-AI-Usage.exe.bak
+HP-AI-Usage.build.exe
+
+# Trạng thái cục bộ của từng máy
+preferences.json
+taskbar-pos.json
+crash.log
+
+# Hệ thống tệp
+.DS_Store
+Thumbs.db

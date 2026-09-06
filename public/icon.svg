@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="hpUsageGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B7DFB" />
+      <stop offset="100%" stop-color="#8F52F7" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="118" ry="118" fill="url(#hpUsageGradient)" />
+  <g transform="translate(68.5, 60.4) scale(16.3)" stroke="#FFFFFF" stroke-width="2.0" stroke-linecap="butt" stroke-linejoin="miter" fill="none">
+    <line x1="12" y1="2" x2="12" y2="22" />
+    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </g>
+</svg>

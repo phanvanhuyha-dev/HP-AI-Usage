@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HP-AI-Usage</title>
+    <meta name="description" content="Widget theo dõi hạn mức AI trên Windows">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="stylesheet" href="widget.css">
+</head>
+<body class="widget-body">
+    <div class="widget-shell" id="widget-root">
+        <!-- Trang web không tự di chuyển được cửa sổ trình duyệt, nên tay cầm này
+             chỉ có tác dụng nhấp đúp. Việc kéo thả là của bản thanh tác vụ biên dịch. -->
+        <div class="taskbar-drag-handle hidden" id="widget-drag-handle" title="Nhấp đúp để mở Bảng điều khiển">⋮⋮</div>
+        <main class="tile-grid" id="widget-content" aria-live="polite">
+            <div class="widget-loading">
+                <span class="mini-spinner" aria-hidden="true"></span>
+                <span>Đang tải hạn mức…</span>
+            </div>
+        </main>
+        <button type="button" class="taskbar-expand-btn hidden" id="taskbar-expand-btn" title="Mở Dashboard chi tiết đầy đủ ↗">↗</button>
+
+        <footer class="widget-footer">
+            <span class="footer-status">
+                <span class="live-dot" id="footer-live-dot" aria-hidden="true"></span>
+                <span id="widget-status-text" aria-live="polite">Đang kết nối…</span>
+            </span>
+            <a href="/" target="_blank" rel="noopener noreferrer" id="footer-hint">Mở đầy đủ ↗</a>
+        </footer>
+    </div>
+
+    <div class="detail-overlay hidden" id="provider-detail-overlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="provider-detail-title">
+        <section class="detail-card" tabindex="-1">
+            <header class="detail-header">
+                <div>
+                    <span class="detail-kicker" id="provider-detail-kicker">CHI TIẾT</span>
+                    <h2 id="provider-detail-title">Provider</h2>
+                </div>
+                <button type="button" id="provider-detail-close" class="detail-close" aria-label="Đóng">&times;</button>
+            </header>
+            <div class="detail-content" id="provider-detail-content"></div>
+        </section>
+    </div>
+
+    <script src="usage-ui.js"></script>
+    <script src="i18n.js"></script>
+    <script src="widget.js"></script>
+</body>
+</html>

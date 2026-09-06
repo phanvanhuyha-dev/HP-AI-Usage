@@ -1,0 +1,11 @@
+# Chuẩn hóa dòng kết: tệp văn bản dùng LF trong kho, tự đổi khi checkout
+* text=auto eol=lf
+
+# Tệp Windows giữ CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Tệp nhị phân không đụng tới
+*.png binary
+*.ico binary
+*.exe binary
