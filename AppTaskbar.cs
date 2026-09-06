@@ -65,6 +65,18 @@ namespace HPAIUsage {
         [DllImport("user32.dll")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
 
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorPos(out POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT { public int X; public int Y; }
+
+        // Vị trí con trỏ (pixel màn hình) lúc mở menu, để biết khi nào con trỏ rời xa
+        private static POINT menuOpenPos;
+
+        // Chiều cao thanh tác vụ Windows, dùng để nhấc menu lên cho khỏi bị che
+        private static double taskbarHeight = 48;
+
         // Explorer khởi động lại sẽ phát thông điệp này, khi đó cửa sổ cha cũ đã
         // chết nên phải gắn lại toàn bộ kiểu cửa sổ và hook.
         private static uint WM_TASKBARCREATED = 0;
@@ -147,9 +159,15 @@ namespace HPAIUsage {
         private const string STARTUP_REG_PATH = @"Software\Microsoft\Windows\CurrentVersion\Run";
         private const string STARTUP_REG_NAME = "HP-AI-Usage";
 
+        // Ngôn ngữ giao diện, đọc từ tùy chọn người dùng đã lưu ở bảng điều khiển.
+        // Mặc định tiếng Anh, khớp với mặc định của web.
+        private static string uiLang = "en";
+        private static bool IsVi() { return uiLang == "vi"; }
+
         private static DispatcherTimer dataTimer;
         private static DispatcherTimer topmostWatchdog;
         private static DispatcherTimer countdownTimer;
+        private static DispatcherTimer menuCloseTimer;
 
         // Trạng thái kéo thả: chỉ bắt đầu kéo khi chuột đã đi quá ngưỡng,
         // để một cú nhấp bình thường không bị nuốt mất.
@@ -197,6 +215,7 @@ namespace HPAIUsage {
             Rect workArea = SystemParameters.WorkArea;
             double screenH = SystemParameters.PrimaryScreenHeight;
             double taskbarH = Math.Max(40, screenH - workArea.Height);
+            taskbarHeight = taskbarH;
             int barWidth = 300;
             int barHeight = 36;
             defaultLeft = 2;
@@ -262,6 +281,8 @@ namespace HPAIUsage {
             <Setter Property=""BorderThickness"" Value=""1"" />
             <Setter Property=""Padding"" Value=""4"" />
             <Setter Property=""HasDropShadow"" Value=""True"" />
+            <!-- Bung lên trên thanh (thanh luôn ở đáy màn hình nên phía trên đủ chỗ),
+                 tránh menu tràn xuống dưới và cắt mất mục cuối. -->
             <Setter Property=""Placement"" Value=""Top"" />
             <Setter Property=""VerticalOffset"" Value=""-4"" />
             <Setter Property=""Template"">
@@ -352,7 +373,7 @@ namespace HPAIUsage {
         <ContextMenu x:Name=""TaskbarContextMenu"">
             <MenuItem x:Name=""MenuDash"" Header=""Mở Bảng điều khiển (Dashboard) ↗"" FontWeight=""Bold"" />
             <MenuItem x:Name=""MenuRefresh"" Header=""Cập nhật dữ liệu ngay (Refresh)"" />
-            <MenuItem x:Name=""MenuResetPos"" Header=""Đặt lại vị trí góc trái (Đè lên thời tiết)"" />
+            <MenuItem x:Name=""MenuResetPos"" Header=""Đặt lại vị trí góc trái"" />
             <MenuItem x:Name=""MenuStartup"" Header=""Khởi động cùng Windows"" />
             <MenuItem x:Name=""MenuToggleTaskbar"" Header=""Ẩn biểu tượng khỏi thanh tác vụ"" />
             <Separator />
@@ -555,14 +576,13 @@ namespace HPAIUsage {
             };
 
             if (menuToggleTaskbar != null) {
-                menuToggleTaskbar.Header = currentShowInTaskbar ? "Ẩn biểu tượng khỏi thanh tác vụ" : "Hiện biểu tượng trên thanh tác vụ";
                 menuToggleTaskbar.Click += (s, e) => {
                     currentShowInTaskbar = !currentShowInTaskbar;
                     // WPF huỷ và tạo lại HWND ngay tại dòng dưới đây
                     window.ShowInTaskbar = currentShowInTaskbar;
                     // Gắn lại toàn bộ kiểu cửa sổ và hook lên handle mới
                     ApplyWindowStyles(window, iconPath);
-                    menuToggleTaskbar.Header = currentShowInTaskbar ? "Ẩn biểu tượng khỏi thanh tác vụ" : "Hiện biểu tượng trên thanh tác vụ";
+                    ApplyMenuLanguage();
                     SavePosition();
                 };
             }
@@ -577,12 +597,53 @@ namespace HPAIUsage {
 
             if (menuExit != null) menuExit.Click += (s, e) => { window.Close(); };
 
-            // Tooltip của viên thuốc và menu chuột phải đều bung lên từ đáy nên đè
+            // Menu tự đóng khi con trỏ rời xa. Cửa sổ luôn trên cùng khiến menu không
+            // tự đóng như menu thường, và sự kiện MouseLeave của popup không đáng tin,
+            // nên theo dõi thẳng vị trí con trỏ: rời quá xa điểm mở thì đóng.
+            menuCloseTimer = new DispatcherTimer();
+            menuCloseTimer.Interval = TimeSpan.FromMilliseconds(250);
+            menuCloseTimer.Tick += (s, e) => {
+                if (window.ContextMenu == null || !window.ContextMenu.IsOpen) {
+                    menuCloseTimer.Stop();
+                    return;
+                }
+                POINT c;
+                if (!GetCursorPos(out c)) return;
+                // Bán kính bao trọn menu, quy đổi theo tỉ lệ hiển thị (DPI)
+                double dpi = 1.0;
+                var src = PresentationSource.FromVisual(window);
+                if (src != null && src.CompositionTarget != null) dpi = src.CompositionTarget.TransformToDevice.M11;
+                int radius = (int)(320 * dpi);
+                int dx = c.X - menuOpenPos.X;
+                int dy = c.Y - menuOpenPos.Y;
+                if (dx * dx + dy * dy > radius * radius) {
+                    window.ContextMenu.IsOpen = false;
+                    menuCloseTimer.Stop();
+                }
+            };
+
+            // Tooltip của viên thuốc và menu chuột phải đều bung lên cùng chỗ nên đè
             // lên nhau. Tắt tooltip khi menu đang mở, bật lại khi menu đóng.
             if (window.ContextMenu != null) {
-                window.ContextMenu.Opened += (s, e) => SetPillTooltipsEnabled(false);
-                window.ContextMenu.Closed += (s, e) => SetPillTooltipsEnabled(true);
+                var cm = window.ContextMenu;
+                // Nhấc menu lên vừa đủ để mục cuối (Exit) vượt khỏi vùng taskbar.
+                // Thanh nằm giữa taskbar nên chỉ lẫn vào (taskbar-bar)/2, cộng chút
+                // lề cho thoáng. Nhấc cả chiều cao taskbar sẽ đẩy menu xa thanh.
+                cm.VerticalOffset = -((taskbarHeight - 36) / 2 + 10);
+                cm.Opened += (s, e) => {
+                    SetPillTooltipsEnabled(false);
+                    GetCursorPos(out menuOpenPos);
+                    menuCloseTimer.Start();
+                };
+                cm.Closed += (s, e) => {
+                    SetPillTooltipsEnabled(true);
+                    menuCloseTimer.Stop();
+                };
             }
+
+            // Đặt nhãn menu theo ngôn ngữ mặc định ngay, tránh kẹt tiếng Việt của
+            // XAML khi ngôn ngữ đang là tiếng Anh. UpdateUsageData sẽ đồng bộ tiếp.
+            ApplyMenuLanguage();
 
             // Initial data update
             UpdateUsageData();
@@ -624,6 +685,7 @@ namespace HPAIUsage {
             if (dataTimer != null) dataTimer.Stop();
             if (topmostWatchdog != null) topmostWatchdog.Stop();
             if (countdownTimer != null) countdownTimer.Stop();
+            if (menuCloseTimer != null) menuCloseTimer.Stop();
             if (appMutex != null) {
                 appMutex.ReleaseMutex();
                 appMutex.Dispose();
@@ -797,9 +859,44 @@ namespace HPAIUsage {
 
         private static void RefreshStartupMenu() {
             if (menuStartup == null) return;
-            menuStartup.Header = IsStartupEnabled()
-                ? "✓ Khởi động cùng Windows"
-                : "Khởi động cùng Windows";
+            string label = IsVi() ? "Khởi động cùng Windows" : "Start with Windows";
+            menuStartup.Header = (IsStartupEnabled() ? "✓ " : "") + label;
+        }
+
+        // Đặt nhãn menu theo ngôn ngữ đang chọn ở bảng điều khiển.
+        private static void ApplyMenuLanguage() {
+            bool vi = IsVi();
+            if (menuDash != null) menuDash.Header = vi ? "Mở Bảng điều khiển (Dashboard) ↗" : "Open dashboard ↗";
+            if (menuRefresh != null) menuRefresh.Header = vi ? "Cập nhật dữ liệu ngay (Refresh)" : "Refresh now";
+            if (menuResetPos != null) menuResetPos.Header = vi ? "Đặt lại vị trí góc trái" : "Reset position to left";
+            if (menuExit != null) menuExit.Header = vi ? "Thoát thanh tác vụ (Exit)" : "Exit";
+            if (menuToggleTaskbar != null) {
+                menuToggleTaskbar.Header = currentShowInTaskbar
+                    ? (vi ? "Ẩn biểu tượng khỏi thanh tác vụ" : "Hide the taskbar icon")
+                    : (vi ? "Hiện biểu tượng trên thanh tác vụ" : "Show the taskbar icon");
+            }
+            RefreshStartupMenu();
+        }
+
+        // Nhãn hạn mức theo khóa ổn định, trùng với public/i18n.js.
+        private static string MetricLabel(Dictionary<string, object> m, string fallbackName) {
+            string key = GetString(m, "metricKey");
+            string pname = "";
+            object mp;
+            if (m.TryGetValue("metricParams", out mp)) {
+                var pd = mp as Dictionary<string, object>;
+                if (pd != null) pname = GetString(pd, "name");
+            }
+            bool vi = IsVi();
+            switch (key) {
+                case "session_5h": return vi ? "Phiên 5 giờ" : "5-hour session";
+                case "weekly_7d": return vi ? "Hạn mức tuần" : "Weekly limit";
+                case "model": return vi ? ("Mô hình " + pname) : (pname + " model");
+                case "group_session": return pname + " (5h)";
+                case "group_weekly": return pname + (vi ? " (tuần)" : " (weekly)");
+                case "reset_credits": return vi ? "Lượt đặt lại" : "Reset credits";
+                default: return string.IsNullOrEmpty(fallbackName) ? "" : fallbackName;
+            }
         }
 
         private static void SetPillTooltipsEnabled(bool on) {
@@ -888,12 +985,17 @@ namespace HPAIUsage {
 
         private static string FormatResetTimeFull(string isoString) {
             DateTime dt;
-            if (!TryParseIsoUtc(isoString, out dt)) return "Không xác định";
+            bool vi = IsVi();
+            if (!TryParseIsoUtc(isoString, out dt)) return vi ? "Không xác định" : "unknown";
             TimeSpan diff = dt - DateTime.UtcNow;
-            if (diff.TotalMinutes <= 0) return "ngay bây giờ";
-            if (diff.TotalDays >= 1) return string.Format("{0} ngày {1} giờ", (int)diff.TotalDays, diff.Hours);
-            if (diff.TotalHours >= 1) return string.Format("{0} giờ {1} phút", (int)diff.TotalHours, diff.Minutes);
-            return string.Format("{0} phút", (int)diff.TotalMinutes);
+            if (diff.TotalMinutes <= 0) return vi ? "ngay bây giờ" : "now";
+            if (diff.TotalDays >= 1) return vi
+                ? string.Format("{0} ngày {1} giờ", (int)diff.TotalDays, diff.Hours)
+                : string.Format("{0}d {1}h", (int)diff.TotalDays, diff.Hours);
+            if (diff.TotalHours >= 1) return vi
+                ? string.Format("{0} giờ {1} phút", (int)diff.TotalHours, diff.Minutes)
+                : string.Format("{0}h {1}m", (int)diff.TotalHours, diff.Minutes);
+            return vi ? string.Format("{0} phút", (int)diff.TotalMinutes) : string.Format("{0}m", (int)diff.TotalMinutes);
         }
 
         // Ngưỡng phải trùng với getMetricSeverity trong public/usage-ui.js,
@@ -944,9 +1046,12 @@ namespace HPAIUsage {
             if (dot != null) dot.Fill = grey;
             if (timeText != null) { timeText.Tag = null; timeText.Text = ""; }
             if (pill != null) {
-                pill.ToolTip = string.Format(
-                    "{0}: chưa đọc được số liệu\n• {1}\n(Nhấp chuột để mở bảng điều khiển chi tiết)",
-                    displayName, reason);
+                bool vi = IsVi();
+                pill.ToolTip = string.Format("{0}: {1}\n• {2}\n{3}",
+                    displayName,
+                    vi ? "chưa đọc được số liệu" : "no data",
+                    reason,
+                    vi ? "(Nhấp chuột để mở bảng điều khiển chi tiết)" : "(Click to open the dashboard)");
             }
         }
 
@@ -1005,7 +1110,27 @@ namespace HPAIUsage {
             return best;
         }
 
+        // Đọc ngôn ngữ người dùng đã chọn ở bảng điều khiển, cập nhật menu nếu đổi.
+        private static void SyncLanguage() {
+            try {
+                string s;
+                using (var wc = new WebClient()) {
+                    wc.Encoding = Encoding.UTF8;
+                    s = wc.DownloadString(serverUrl + "/api/preferences");
+                }
+                var js = new JavaScriptSerializer();
+                var d = js.Deserialize<Dictionary<string, object>>(s);
+                string lang = d != null ? GetString(d, "lang") : "";
+                if ((lang == "vi" || lang == "en") && lang != uiLang) {
+                    uiLang = lang;
+                    ApplyMenuLanguage();
+                }
+            } catch {}
+        }
+
         private static void UpdateUsageData() {
+            SyncLanguage();
+
             string jsonStr;
             try {
                 using (var wc = new WebClient()) {
@@ -1013,7 +1138,7 @@ namespace HPAIUsage {
                     jsonStr = wc.DownloadString(serverUrl + "/api/usage");
                 }
             } catch (Exception ex) {
-                MarkAllPillsUnknown("Không kết nối được máy chủ HP-AI-Usage. " + ex.Message);
+                MarkAllPillsUnknown((IsVi() ? "Không kết nối được máy chủ HP-AI-Usage. " : "Cannot reach the HP-AI-Usage server. ") + ex.Message);
                 return;
             }
 
@@ -1025,12 +1150,12 @@ namespace HPAIUsage {
                     providers = data["providers"] as Dictionary<string, object>;
                 }
             } catch (Exception ex) {
-                MarkAllPillsUnknown("Dữ liệu trả về không đọc được. " + ex.Message);
+                MarkAllPillsUnknown((IsVi() ? "Dữ liệu trả về không đọc được. " : "Could not read the returned data. ") + ex.Message);
                 return;
             }
 
             if (providers == null) {
-                MarkAllPillsUnknown("Máy chủ không trả về danh sách dịch vụ.");
+                MarkAllPillsUnknown(IsVi() ? "Máy chủ không trả về danh sách dịch vụ." : "The server returned no provider list.");
                 return;
             }
 
@@ -1110,7 +1235,7 @@ namespace HPAIUsage {
             // Dữ liệu cũ (stale) thì hiện "cũ" và không đếm ngược.
             if (stale) {
                 timeText.Tag = null;
-                timeText.Text = " • cũ";
+                timeText.Text = IsVi() ? " • cũ" : " • old";
             } else if (!string.IsNullOrEmpty(resetsAt)) {
                 timeText.Tag = resetsAt;
                 timeText.Text = " • " + FormatCountdown(resetsAt);
@@ -1119,11 +1244,16 @@ namespace HPAIUsage {
                 timeText.Text = "";
             }
 
-            pill.ToolTip = string.Format(
-                "{0}: Đã dùng {1}%{2}\n• Hạn mức: {3}\n• Đặt lại sau: {4}\n(Nhấp chuột để mở bảng điều khiển chi tiết)",
-                displayName, pct,
-                stale ? "  (số liệu cũ, đang chờ đồng bộ)" : "",
-                metricName, resetsFull);
+            bool vi = IsVi();
+            string usedLine = vi ? ("Đã dùng " + pct + "%") : (pct + "% used");
+            string staleNote = stale ? (vi ? "  (số liệu cũ, đang chờ đồng bộ)" : "  (stale, syncing)") : "";
+            string limitLbl = vi ? "Hạn mức" : "Limit";
+            string resetLbl = vi ? "Đặt lại sau" : "Resets in";
+            string clickLbl = vi ? "(Nhấp chuột để mở bảng điều khiển chi tiết)" : "(Click to open the dashboard)";
+            pill.ToolTip = string.Format("{0}: {1}{2}\n• {3}: {4}\n• {5}: {6}\n{7}",
+                displayName, usedLine, staleNote,
+                limitLbl, MetricLabel(chosen, metricName),
+                resetLbl, resetsFull, clickLbl);
         }
     }
 }
