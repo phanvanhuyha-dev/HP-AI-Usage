@@ -4,7 +4,18 @@ A local, zero-dependency dashboard for Windows that tracks the usage quotas of f
 
 [English](#english) · [Tiếng Việt](#tiếng-việt)
 
+![HP-AI-Usage dashboard tracking five AI providers](docs/screenshot-dashboard.png)
+
+The always-on-top taskbar mini-bar with live reset countdowns:
+
 ![Taskbar mini-bar with live reset countdowns](docs/screenshot-taskbar.png)
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshot-widget.png" alt="Floating widget"><br><sub>Floating widget with quota rings</sub></td>
+<td width="50%"><img src="docs/screenshot-menu.png" alt="Taskbar right-click menu"><br><sub>Taskbar right-click menu</sub></td>
+</tr>
+</table>
 
 ---
 
