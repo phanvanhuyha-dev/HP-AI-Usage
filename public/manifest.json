@@ -1,7 +1,7 @@
 {
   "name": "HP-AI-Usage",
   "short_name": "HP-AI-Usage",
-  "description": "Bảng điều khiển theo dõi hạn mức sử dụng AI cho Claude, ChatGPT, Gemini, AntiGravity và Perplexity trên Windows.",
+  "description": "Bảng điều khiển theo dõi hạn mức sử dụng AI cho Claude, ChatGPT, Gemini và AntiGravity trên Windows.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B0F19",

@@ -14,7 +14,7 @@ let claudeRateLimitCooldownUntil = 0;
 let claudeRateLimitCount = 0;
 let lastLocalLimitScanTime = 0;
 let cachedLocalLimitSignal = null;
-const CLAUDE_CACHE_TTL_MS = 300000;
+const CLAUDE_CACHE_TTL_MS = 600000;
 const CLAUDE_RATE_LIMIT_BASE_MS = 300000;
 const CLAUDE_RATE_LIMIT_MAX_MS = 3600000;
 
@@ -278,6 +278,8 @@ async function scanClaude(force = false) {
         if (localUsage && localUsage.fetchedAtMs > cachedUpdatedAt) {
             cachedClaudeResult = buildClaudeResult(localUsage.usageData, new Date(localUsage.fetchedAtMs).toISOString(), plan);
             lastClaudeFetchTime = localUsage.fetchedAtMs;
+            claudeRateLimitCount = 0;
+            claudeRateLimitCooldownUntil = 0;
             saveDiskCache(cachedClaudeResult);
             return cachedClaudeResult;
         }
@@ -330,15 +332,18 @@ async function scanClaude(force = false) {
         // 4. Xử lý các trường hợp lỗi từ máy chủ Anthropic
         if (response.statusCode === 429) {
             claudeRateLimitCount += 1;
-            const cooldownMs = Math.min(
+            const backoffMs = Math.min(
                 CLAUDE_RATE_LIMIT_MAX_MS,
                 CLAUDE_RATE_LIMIT_BASE_MS * (2 ** (claudeRateLimitCount - 1))
             );
+            const serverRetryMs = response.retryAfterSec ? (response.retryAfterSec * 1000) : 0;
+            const cooldownMs = Math.max(backoffMs, serverRetryMs);
             claudeRateLimitCooldownUntil = now + cooldownMs;
-            console.log(`Anthropic rate limited (429). Tạm dừng đồng bộ Claude ${Math.round(cooldownMs / 60000)} phút.`);
+            const waitMinutes = Math.round(cooldownMs / 60000);
+            console.log(`Anthropic rate limited (429). Tạm dừng đồng bộ Claude ${waitMinutes} phút.`);
             return staleClaudeResult('rate_limited', claudeRateLimitCooldownUntil) || providerResult(
                 'claude', 'Claude', 'error',
-                'Máy chủ Anthropic đang tạm thời giới hạn tần suất yêu cầu (Rate Limit 429). Hệ thống sẽ tự kết nối lại trong ít phút.',
+                `Máy chủ Anthropic đang tạm thời giới hạn tần suất yêu cầu (Rate Limit 429). Hệ thống sẽ tự kết nối lại sau ${waitMinutes} phút.`,
                 {
                     plan,
                     syncStatus: 'rate_limited',
@@ -380,7 +385,14 @@ function fetchClaudeUsage(token) {
                         resolve({ success: false, statusCode: res.statusCode, message: 'Lỗi phân tích cú pháp dữ liệu từ Anthropic.' });
                     }
                 } else {
-                    resolve({ success: false, statusCode: res.statusCode, message: `Máy chủ Anthropic trả về mã lỗi ${res.statusCode}.` });
+                    const retryHeader = res.headers['retry-after'];
+                    const retrySec = retryHeader ? parseInt(retryHeader, 10) : null;
+                    resolve({
+                        success: false,
+                        statusCode: res.statusCode,
+                        retryAfterSec: Number.isFinite(retrySec) ? retrySec : null,
+                        message: `Máy chủ Anthropic trả về mã lỗi ${res.statusCode}.`
+                    });
                 }
             });
         });

@@ -84,7 +84,7 @@ body {
 
 /* Khung bọc ứng dụng (App Container) */
 .app-container {
-    max-width: 1280px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 16px 20px 20px 20px;
     display: flex;
@@ -583,7 +583,7 @@ body {
 }
 
 /* ============================================================
-   Lưới hiển thị 5 thẻ dịch vụ (Providers Container)
+   Lưới hiển thị 4 thẻ dịch vụ (Providers Container)
    ============================================================ */
 .providers-container {
     display: flex;
@@ -592,28 +592,28 @@ body {
     transition: all var(--transition-smooth);
 }
 
-/* Ba thẻ ở hàng đầu, hai thẻ cuối tự giãn đều để tận dụng chiều cao màn hình. */
+/* Dàn ngang cả 4 ô trên 1 hàng cho màn hình máy tính */
 .providers-container.view-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
 }
 
 .providers-container.view-mode-grid .provider-card {
-    flex: 1 1 calc((100% - 24px) / 3);
-    min-width: 300px;
+    min-width: 0;
 }
 
-@media (max-width: 980px) {
-    .providers-container.view-mode-grid .provider-card {
-        flex-basis: calc((100% - 12px) / 2);
-        min-width: 280px;
+@media (max-width: 1080px) {
+    .providers-container.view-mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
     }
 }
 
-@media (max-width: 620px) {
-    .providers-container.view-mode-grid { gap: 10px; }
-    .providers-container.view-mode-grid .provider-card {
-        flex-basis: 100%;
-        min-width: 0;
+@media (max-width: 600px) {
+    .providers-container.view-mode-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 }
 

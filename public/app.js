@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         })
-        .catch(() => {});
+        .catch(() => { });
 
     // 2. Tải dữ liệu ban đầu
     loadUsageData();
@@ -246,14 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function setLanguage(lang, reRender = true, broadcast = true) {
         currentLang = lang;
         document.documentElement.lang = lang;
-        try { localStorage.setItem('openusage_lang', lang); } catch (e) {}
+        try { localStorage.setItem('openusage_lang', lang); } catch (e) { }
 
         if (broadcast) {
             fetch('/api/preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ lang })
-            }).catch(() => {});
+            }).catch(() => { });
             if (syncChannel) syncChannel.postMessage({ type: 'lang', value: lang });
         }
 
@@ -333,14 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (viewModeHint) viewModeHint.textContent = dict.viewGridHint;
         }
         if (save) {
-            try { localStorage.setItem('openusage_view_mode', mode); } catch (e) {}
+            try { localStorage.setItem('openusage_view_mode', mode); } catch (e) { }
         }
         if (broadcast) {
             fetch('/api/preferences', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ viewMode: mode })
-            }).catch(() => {});
+            }).catch(() => { });
             if (syncChannel) syncChannel.postMessage({ type: 'viewMode', value: mode });
         }
     }
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         : `Đã cấu hình (${info.maskedGemini}) - Để trống để giữ nguyên`;
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     });
 
     modalCloseBtn.addEventListener('click', closeSettingsModal);
@@ -486,24 +486,24 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: { 'Content-Type': 'application/json', 'X-HP-Request': '1' },
             body: JSON.stringify(payload)
         })
-        .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
-        .then(res => {
-            if (res.success) {
-                closeSettingsModal();
-                inputPerplexity.value = '';
-                inputGemini.value = '';
-                currentData = res.data;
-                renderDashboard(res.data);
-                showToast(dict.toastSettingsSuccess);
-            } else {
-                showToast('Lỗi: ' + res.error);
-            }
-        })
-        .catch(err => showToast('Lỗi kết nối: ' + err.message))
-        .finally(() => {
-            modalSaveBtn.disabled = false;
-            modalSaveBtn.textContent = dict.save;
-        });
+            .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
+            .then(res => {
+                if (res.success) {
+                    closeSettingsModal();
+                    inputPerplexity.value = '';
+                    inputGemini.value = '';
+                    currentData = res.data;
+                    renderDashboard(res.data);
+                    showToast(dict.toastSettingsSuccess);
+                } else {
+                    showToast('Lỗi: ' + res.error);
+                }
+            })
+            .catch(err => showToast('Lỗi kết nối: ' + err.message))
+            .finally(() => {
+                modalSaveBtn.disabled = false;
+                modalSaveBtn.textContent = dict.save;
+            });
     });
 
     function loadUsageData(force = false, background = false) {
@@ -571,7 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dict = DICTIONARY[currentLang];
         const providers = data.providers;
-        const providerKeys = ['claude', 'chatgpt', 'antigravity', 'gemini', 'perplexity'];
+        const providerKeys = ['claude', 'chatgpt', 'antigravity', 'gemini'];
 
         let activeCount = 0;
         let totalMetrics = 0;
@@ -582,7 +582,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         providerKeys.forEach(key => {
             const p = providers[key] || { id: key, name: PROVIDER_NAMES[key], status: 'not_configured', metrics: [] };
-            
+
             if (p.status === 'active') {
                 activeCount++;
             }
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (warningCount > 0) {
             pillWarningBox.classList.remove('hidden');
             warningMetricsCount.textContent = `${warningCount} ${dict.warnings}`;
-            
+
             urgentAlert.classList.remove('hidden');
             urgentAlertText.textContent = `${warningsList.join(' • ')}. ${dict.limitReached}`;
         } else {
@@ -661,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Header
         const header = document.createElement('div');
         header.className = 'card-header';
-        
+
         const titleGroup = document.createElement('div');
         titleGroup.className = 'card-title-group';
 
@@ -674,11 +674,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Khi active hiển thị chấm trạng thái tinh gọn, khi có cảnh báo/lỗi hiển thị badge chi tiết
         const isErrorOrNotRunning = p.status !== 'active';
+        const staleTooltip = escapeHTML(p.message || (currentLang === 'en' ? 'Stale data - waiting to sync' : 'Dữ liệu cũ - đang chờ đồng bộ'));
         const badgeHtml = p.stale
-            ? `<span class="card-badge badge-stale">${currentLang === 'en' ? 'Waiting to sync' : 'Chờ đồng bộ'}</span>`
+            ? `<span class="card-badge badge-stale" title="${staleTooltip}">${currentLang === 'en' ? 'Waiting to sync' : 'Chờ đồng bộ'}</span>`
             : isErrorOrNotRunning
-            ? `<span class="card-badge badge-${escapeHTML(p.status)}">${escapeHTML(localizeStatus(p.status))}</span>`
-            : `<span class="badge-status-dot active" title="${localizeStatus('active')}"></span>`;
+                ? `<span class="card-badge badge-${escapeHTML(p.status)}">${escapeHTML(localizeStatus(p.status))}</span>`
+                : `<span class="badge-status-dot active" title="${localizeStatus('active')}"></span>`;
 
         titleMeta.innerHTML = `
             <div class="card-name-row">
@@ -792,8 +793,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Footer
         const footer = document.createElement('div');
         footer.className = 'card-footer';
-        const accountText = (p.account === 'Cục bộ' || p.account === 'Phiên cục bộ (Active)') 
-            ? (currentLang === 'en' ? 'Local' : 'Cục bộ') 
+        const accountText = (p.account === 'Cục bộ' || p.account === 'Phiên cục bộ (Active)')
+            ? (currentLang === 'en' ? 'Local' : 'Cục bộ')
             : (p.account || (currentLang === 'en' ? 'Local' : 'Cục bộ'));
 
         const statusClass = p.status === 'active' ? 'ready' : 'pending';
