@@ -915,9 +915,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Footer
         const footer = document.createElement('div');
         footer.className = 'card-footer';
-        const accountText = (p.account === 'Cục bộ' || p.account === 'Phiên cục bộ (Active)')
-            ? (currentLang === 'en' ? 'Local' : 'Cục bộ')
-            : (p.account || (currentLang === 'en' ? 'Local' : 'Cục bộ'));
+        let accountText = p.account || (currentLang === 'en' ? 'Local' : 'Cục bộ');
+        if (p.account === 'Cục bộ' || p.account === 'Phiên cục bộ (Active)') {
+            accountText = currentLang === 'en' ? 'Local' : 'Cục bộ';
+        } else if (p.account === 'Tích hợp AntiGravity') {
+            accountText = currentLang === 'en' ? 'AntiGravity IDE' : 'Tích hợp AntiGravity';
+        }
 
         const statusClass = p.status === 'active' ? 'ready' : 'pending';
         const statusText = p.status === 'active' ? dict.statusReady : dict.statusPending;
