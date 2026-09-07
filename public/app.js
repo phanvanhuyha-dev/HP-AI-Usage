@@ -91,7 +91,18 @@ document.addEventListener('DOMContentLoaded', () => {
             toastSettingsSuccess: 'Đã cập nhật cài đặt thành công',
             toastRefreshError: 'Lỗi khi làm mới: ',
             loadingText: 'Đang nạp dữ liệu hạn mức từ máy tính của bạn...',
+            loadingMetricsCount: 'Đang tải…',
             noUsageInfo: 'Chưa có thông tin sử dụng.',
+            fileProtocolTitle: 'Đang mở trực tiếp tệp HTML (file://) - Cần chạy qua máy chủ',
+            fileProtocolDesc: 'Ứng dụng HP-AI-Usage cần máy chủ nội bộ trên máy tính để đọc an toàn các chỉ số hạn mức (Claude, ChatGPT, AntiGravity, Gemini). Trình duyệt chặn toàn bộ lệnh đọc dữ liệu khi mở trực tiếp tệp bằng giao thức file://.',
+            fileProtocolStep1: 'Kiểm tra máy tính đã cài Node.js (phiên bản LTS từ https://nodejs.org).',
+            fileProtocolStep2: 'Nhấp đúp chuột vào tệp start.bat trong thư mục ứng dụng để khởi động máy chủ.',
+            fileProtocolStep3: 'Mở trình duyệt tại địa chỉ http://127.0.0.1:6736.',
+            openLocalServerBtn: 'Mở màn hình tổng hợp: http://127.0.0.1:6736',
+            offlineTitle: 'Không thể kết nối đến máy chủ nội bộ (Offline)',
+            offlineDesc: 'Máy chủ tại 127.0.0.1:6736 chưa khởi động hoặc đã bị dừng.',
+            offlineInstruction: 'Hãy kiểm tra cửa sổ dòng lệnh start.bat có đang chạy hay không. Nếu chưa, hãy nhấp đúp vào start.bat để khởi động lại.',
+            retryConnectionBtn: 'Thử lại kết nối',
             controlLabels: {
                 'refresh-btn': { title: 'Làm mới dữ liệu tức thì', aria: 'Làm mới' },
                 'btn-open-pip-widget': { title: 'Mở tiện ích ghim trên cùng', aria: 'Ghim Widget' },
@@ -140,7 +151,18 @@ document.addEventListener('DOMContentLoaded', () => {
             toastSettingsSuccess: 'Settings updated successfully',
             toastRefreshError: 'Refresh error: ',
             loadingText: 'Loading usage metrics from your computer...',
+            loadingMetricsCount: 'Loading...',
             noUsageInfo: 'No usage information available.',
+            fileProtocolTitle: 'Opened via file:// - Local Server Required',
+            fileProtocolDesc: 'HP-AI-Usage requires a local server to securely read quotas from your computer (Claude, ChatGPT, AntiGravity, Gemini). Browsers block API calls when HTML files are opened directly via file://.',
+            fileProtocolStep1: 'Make sure Node.js is installed (download LTS from https://nodejs.org).',
+            fileProtocolStep2: 'Double-click start.bat in the app folder to start the local server.',
+            fileProtocolStep3: 'Open your browser at http://127.0.0.1:6736.',
+            openLocalServerBtn: 'Open dashboard: http://127.0.0.1:6736',
+            offlineTitle: 'Cannot connect to local server (Offline)',
+            offlineDesc: 'The server at 127.0.0.1:6736 is not running or unreachable.',
+            offlineInstruction: 'Please check if start.bat is running in a terminal window. If not, double-click start.bat to launch the server.',
+            retryConnectionBtn: 'Retry Connection',
             controlLabels: {
                 'refresh-btn': { title: 'Refresh data now', aria: 'Refresh' },
                 'btn-open-pip-widget': { title: 'Open the always-on-top widget', aria: 'Pin Widget' },
@@ -192,14 +214,28 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    const isFileProtocol = window.location.protocol === 'file:';
+
     // Trình duyệt đã biết chính xác địa chỉ và cổng đang kết nối, không cần
     // ghi cứng 127.0.0.1:6736 trong HTML rồi sai khi người dùng đổi cổng.
     const footerHost = document.getElementById('footer-host');
-    if (footerHost) footerHost.textContent = window.location.host;
+    if (footerHost) footerHost.textContent = isFileProtocol ? 'file://' : (window.location.host || '127.0.0.1:6736');
 
     // 1. Khởi tạo ngôn ngữ & chế độ xem tức thì từ bộ nhớ đệm cục bộ
     setLanguage(currentLang, false, false);
     initViewMode();
+
+    if (isFileProtocol) {
+        lastUpdatedText.textContent = 'Offline';
+        connectionStatusDot.classList.add('offline');
+        renderFileProtocolWarning();
+        // Vẫn gán sự kiện cho các nút điều hướng để đổi ngôn ngữ / giao diện
+        langViBtn.addEventListener('click', () => setLanguage('vi'));
+        langEnBtn.addEventListener('click', () => setLanguage('en'));
+        viewGridBtn.addEventListener('click', () => setViewMode('grid'));
+        viewPanelBtn.addEventListener('click', () => setViewMode('panel'));
+        return;
+    }
 
     // Đồng bộ từ tệp cấu hình máy chủ (đảm bảo không bị mất tùy chọn sau mỗi lần refresh hoặc xóa cache)
     fetch('/api/preferences')
@@ -304,6 +340,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // Cập nhật chỉ dẫn chế độ xem
         const isPanel = appWrapper.classList.contains('is-side-panel');
         if (viewModeHint) viewModeHint.textContent = isPanel ? dict.viewPanelHint : dict.viewGridHint;
+
+        if (!currentData) {
+            const activeMetricsCount = document.getElementById('active-metrics-count');
+            if (activeMetricsCount && !isFileProtocol && !providersContainer.querySelector('.empty-server-notice.offline-card')) {
+                activeMetricsCount.textContent = dict.loadingMetricsCount || 'Đang tải…';
+            }
+        }
+
+        if (isFileProtocol) {
+            renderFileProtocolWarning();
+            return;
+        }
+
+        if (providersContainer.querySelector('.empty-server-notice.offline-card')) {
+            renderServerOfflineWarning();
+            return;
+        }
 
         if (reRender && currentData) {
             renderDashboard(currentData, true);
@@ -506,7 +559,81 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
+    function renderFileProtocolWarning() {
+        const dict = DICTIONARY[currentLang];
+        const activeCount = document.getElementById('active-providers-count');
+        const activeMetrics = document.getElementById('active-metrics-count');
+        if (activeCount) activeCount.textContent = '0 / 4';
+        if (activeMetrics) activeMetrics.textContent = 'Offline';
+
+        providersContainer.innerHTML = `
+            <div class="empty-server-notice file-protocol-card">
+                <div class="notice-icon-box warn">
+                    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <h2 class="notice-title">${escapeHTML(dict.fileProtocolTitle)}</h2>
+                <p class="notice-desc">${escapeHTML(dict.fileProtocolDesc)}</p>
+                <div class="notice-steps">
+                    <div class="step-item"><span class="step-num">1</span> <span>${escapeHTML(dict.fileProtocolStep1)}</span></div>
+                    <div class="step-item"><span class="step-num">2</span> <span>${escapeHTML(dict.fileProtocolStep2)}</span></div>
+                    <div class="step-item"><span class="step-num">3</span> <span>${escapeHTML(dict.fileProtocolStep3)}</span></div>
+                </div>
+                <div class="notice-actions">
+                    <a href="http://127.0.0.1:6736" class="btn btn-primary btn-notice">${escapeHTML(dict.openLocalServerBtn)} ↗</a>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderServerOfflineWarning(err) {
+        const dict = DICTIONARY[currentLang];
+        const activeCount = document.getElementById('active-providers-count');
+        const activeMetrics = document.getElementById('active-metrics-count');
+        if (activeCount) activeCount.textContent = '0 / 4';
+        if (activeMetrics) activeMetrics.textContent = 'Offline';
+
+        providersContainer.innerHTML = `
+            <div class="empty-server-notice offline-card">
+                <div class="notice-icon-box error">
+                    <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                    </svg>
+                </div>
+                <h2 class="notice-title">${escapeHTML(dict.offlineTitle)}</h2>
+                <p class="notice-desc">${escapeHTML(dict.offlineDesc)}</p>
+                <p class="notice-subdesc">${escapeHTML(dict.offlineInstruction)}</p>
+                <div class="notice-actions">
+                    <button type="button" id="btn-retry-connection" class="btn btn-primary btn-notice">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+                        </svg>
+                        ${escapeHTML(dict.retryConnectionBtn)}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const retryBtn = document.getElementById('btn-retry-connection');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                providersContainer.innerHTML = `
+                    <div class="loading-state">
+                        <div class="loader-spinner"></div>
+                        <p id="loading-text">${escapeHTML(dict.loadingText)}</p>
+                    </div>
+                `;
+                loadUsageData(true);
+            });
+        }
+    }
+
     function loadUsageData(force = false, background = false) {
+        if (isFileProtocol) return;
         const dict = DICTIONARY[currentLang];
         if (!background) {
             lastUpdatedText.textContent = dict.connecting;
@@ -523,6 +650,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastUpdatedText.textContent = 'Offline';
                 connectionStatusDot.classList.add('offline');
                 console.error('Fetch error:', err);
+                if (!currentData) {
+                    renderServerOfflineWarning(err);
+                }
             });
     }
 

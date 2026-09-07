@@ -344,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchUsage() {
+        if (window.location.protocol === 'file:') return;
         try {
             const response = await fetch('/api/usage');
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -352,6 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Widget usage fetch failed:', error);
             statusText.textContent = localizeStatus('error');
             liveDot.className = 'live-dot is-critical';
+            if (!currentData) {
+                content.innerHTML = `
+                    <div style="padding:14px 10px;text-align:center;font-size:11px;color:#94a3b8;line-height:1.4;">
+                        <div style="color:#ef4444;font-weight:600;margin-bottom:6px;">Máy chủ Offline / Server Offline</div>
+                        <div>Không kết nối được 127.0.0.1:6736. Hãy chạy start.bat.</div>
+                    </div>
+                `;
+            }
         }
     }
 
@@ -463,6 +472,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     setLanguage(currentLang);
+
+    if (window.location.protocol === 'file:') {
+        statusText.textContent = 'Offline (file://)';
+        liveDot.className = 'live-dot is-critical';
+        content.innerHTML = `
+            <div style="padding:14px 10px;text-align:center;font-size:11px;color:#94a3b8;line-height:1.4;">
+                <div style="color:#f59e0b;font-weight:600;margin-bottom:6px;">Chạy qua start.bat / Run start.bat</div>
+                <div>Widget cần máy chủ 127.0.0.1:6736 để đọc dữ liệu.</div>
+                <div style="margin-top:8px;"><a href="http://127.0.0.1:6736/widget" style="color:#60a5fa;text-decoration:none;">http://127.0.0.1:6736/widget ↗</a></div>
+            </div>
+        `;
+        return;
+    }
+
     fetch('/api/preferences')
         .then(response => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
         .then(preferences => {
