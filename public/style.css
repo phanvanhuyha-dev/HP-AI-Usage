@@ -24,8 +24,6 @@
     --color-antigravity-glow: rgba(6, 182, 212, 0.2);
     --color-gemini: #8B5CF6;
     --color-gemini-glow: rgba(139, 92, 246, 0.2);
-    --color-perplexity: #14B8A6;
-    --color-perplexity-glow: rgba(20, 184, 166, 0.2);
 
     /* Màu trạng thái mức độ */
     --status-normal: #10B981;
@@ -182,7 +180,8 @@ body {
     font-size: 0.72rem;
 }
 
-.app-container.is-side-panel #btn-open-pip-widget {
+.app-container.is-side-panel #btn-open-pip-widget,
+.app-container.is-side-panel #btn-open-taskbar {
     flex: 1 1 auto;
     justify-content: center;
     padding: 4px 8px;
@@ -657,7 +656,6 @@ body {
 .card-chatgpt .card-brand-glow { background: var(--color-chatgpt); }
 .card-antigravity .card-brand-glow { background: var(--color-antigravity); }
 .card-gemini .card-brand-glow { background: var(--color-gemini); }
-.card-perplexity .card-brand-glow { background: var(--color-perplexity); }
 
 /* Đầu thẻ (Card Header) */
 .card-header {
@@ -691,7 +689,6 @@ body {
 .card-chatgpt .provider-icon-wrapper { background: var(--color-chatgpt-glow); color: var(--color-chatgpt); }
 .card-antigravity .provider-icon-wrapper { background: var(--color-antigravity-glow); color: var(--color-antigravity); }
 .card-gemini .provider-icon-wrapper { background: var(--color-gemini-glow); color: var(--color-gemini); }
-.card-perplexity .provider-icon-wrapper { background: var(--color-perplexity-glow); color: var(--color-perplexity); }
 
 .card-title-meta {
     display: flex;

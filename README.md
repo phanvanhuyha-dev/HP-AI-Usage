@@ -1,10 +1,10 @@
 # HP-AI-Usage
 
-A local, zero-dependency dashboard for Windows that tracks the usage quotas of five AI providers side by side: Anthropic Claude, OpenAI ChatGPT/Codex, Google AntiGravity, Google Gemini and Perplexity.
+A local, zero-dependency dashboard for Windows that tracks the usage quotas of four AI providers side by side: Anthropic Claude, OpenAI ChatGPT/Codex, Google AntiGravity, and Google Gemini.
 
 [English](#english) · [Tiếng Việt](#tiếng-việt)
 
-![HP-AI-Usage dashboard tracking five AI providers](docs/screenshot-dashboard.png)
+![HP-AI-Usage dashboard tracking AI providers](docs/screenshot-dashboard.png)
 
 The always-on-top taskbar mini-bar with live reset countdowns:
 
@@ -25,11 +25,10 @@ The always-on-top taskbar mini-bar with live reset countdowns:
 
 HP-AI-Usage reads the credentials already stored on your machine by the AI tools you use, then shows how much of each quota window is left, all in one place. There is no separate login and nothing leaves your computer except the requests to each provider's own servers.
 
-- **Anthropic Claude** — 5-hour session window, 7-day weekly window, and per-model sub-limits. The subscription tier (for example Claude Max 5x) is read from your real account, not hard-coded.
-- **OpenAI ChatGPT / Codex** — 5-hour session window, 7-day weekly window, plan name, and reset credits.
-- **Google AntiGravity** — connects to the AntiGravity IDE local language server to read the Claude and GPT model group quotas.
-- **Google Gemini** — the Gemini model group quotas, also via AntiGravity IDE.
-- **Perplexity** — API key status and available model count.
+- **Anthropic Claude**: 5-hour session window, 7-day weekly window, and per-model sub-limits. The subscription tier (for example Claude Max 5x) is read from your real account, not hard-coded.
+- **OpenAI ChatGPT / Codex**: 5-hour session window, 7-day weekly window, plan name, and reset credits.
+- **Google AntiGravity**: connects to the AntiGravity IDE local language server to read the Claude and GPT model group quotas.
+- **Google Gemini**: the Gemini model group quotas, also via AntiGravity IDE.
 
 ### Highlights
 
@@ -49,7 +48,7 @@ This tool reads local credential files (`~/.claude/.credentials.json`, `~/.codex
 
 The Anthropic and OpenAI quota endpoints used here are **private, undocumented APIs**. They can change or stop working at any time, and automated access may not be consistent with the providers' terms of service. Use at your own risk. The project keeps request counts low with caching and rate-limit backoff.
 
-This project is not affiliated with Anthropic, OpenAI, Google or Perplexity.
+This project is not affiliated with Anthropic, OpenAI, or Google.
 
 ### Prerequisites (Mandatory for Claude & ChatGPT)
 
@@ -121,7 +120,6 @@ Copy `.env.example` to `.env` and fill in your keys:
 
 ```env
 PORT=6736
-PERPLEXITY_API_KEY=pplx-...
 GEMINI_API_KEY=
 ```
 
@@ -151,7 +149,7 @@ MIT. See [LICENSE](LICENSE).
 
 ## Tiếng Việt
 
-Màn hình tổng hợp cục bộ trên Windows, không phụ thuộc thư viện ngoài, theo dõi hạn mức sử dụng (usage quota) của năm nhà cung cấp trí tuệ nhân tạo (AI) cùng lúc: Anthropic Claude, OpenAI ChatGPT/Codex, Google AntiGravity, Google Gemini và Perplexity.
+Màn hình tổng hợp cục bộ trên Windows, không phụ thuộc thư viện ngoài, theo dõi hạn mức sử dụng (usage quota) của bốn nhà cung cấp trí tuệ nhân tạo (AI) cùng lúc: Anthropic Claude, OpenAI ChatGPT/Codex, Google AntiGravity và Google Gemini.
 
 ### Công cụ này làm gì
 
@@ -161,7 +159,6 @@ HP-AI-Usage đọc thông tin xác thực (credentials) có sẵn trên máy c�
 - **OpenAI ChatGPT / Codex:** hạn mức phiên 5 giờ, hạn mức tuần 7 ngày, tên gói, và số lượt khôi phục hạn mức (reset credits).
 - **Google AntiGravity:** kết nối máy chủ ngôn ngữ nội bộ (local language server) của AntiGravity IDE để đọc hạn mức nhóm mô hình Claude và GPT.
 - **Google Gemini:** hạn mức nhóm mô hình Gemini, cũng qua AntiGravity IDE.
-- **Perplexity:** trạng thái khóa API (API key) và số mô hình khả dụng.
 
 ### Điểm nổi bật
 
@@ -181,7 +178,7 @@ Công cụ đọc các tệp thông tin xác thực cục bộ (`~/.claude/.cred
 
 Hai điểm cuối lấy hạn mức của Anthropic và OpenAI là **giao diện nội bộ không được công bố**. Chúng có thể thay đổi hoặc ngừng hoạt động bất cứ lúc nào, và việc truy cập tự động có thể không phù hợp với điều khoản sử dụng của nhà cung cấp. Bạn tự chịu trách nhiệm khi sử dụng. Dự án đã đặt bộ nhớ đệm và cơ chế lùi khi bị giới hạn tần suất để giữ số lượt gọi ở mức thấp.
 
-Dự án không có liên kết với Anthropic, OpenAI, Google hay Perplexity.
+Dự án không có liên kết với Anthropic, OpenAI hay Google.
 
 ### Điều kiện bắt buộc (Kiểm tra và cài đặt trước)
 
@@ -253,7 +250,6 @@ Sao chép `.env.example` thành `.env` rồi điền khóa:
 
 ```env
 PORT=6736
-PERPLEXITY_API_KEY=pplx-...
 GEMINI_API_KEY=
 ```
 

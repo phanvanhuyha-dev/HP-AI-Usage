@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRefreshText = document.getElementById('btn-refresh-text');
     const btnOpenPipWidget = document.getElementById('btn-open-pip-widget');
     const btnPipText = document.getElementById('btn-pip-text');
+    const btnOpenTaskbar = document.getElementById('btn-open-taskbar');
+    const btnTaskbarText = document.getElementById('btn-taskbar-text');
     const footerLocalNote = document.getElementById('footer-local-note');
     const connectionStatusDot = document.getElementById('connection-status-dot');
 
@@ -38,12 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsModal = document.getElementById('settings-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalDesc = document.getElementById('modal-desc');
-    const labelPplxKey = document.getElementById('label-pplx-key');
     const labelGeminiKey = document.getElementById('label-gemini-key');
     const modalCloseBtn = document.getElementById('modal-close-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
     const modalSaveBtn = document.getElementById('modal-save-btn');
-    const inputPerplexity = document.getElementById('input-perplexity-key');
     const inputGemini = document.getElementById('input-gemini-key');
     const toast = document.getElementById('toast');
 
@@ -64,15 +64,17 @@ document.addEventListener('DOMContentLoaded', () => {
             refresh: 'Làm mới',
             refreshing: 'Đang tải...',
             pipBtn: 'Ghim Widget',
-            pipSuccess: 'Đã mở Tiện ích thu nhỏ luôn ghim trên cùng (Always-on-top)',
-            pipFallback: 'Đang mở cửa sổ Tiện ích thu nhỏ (Widget)...',
+            pipSuccess: 'Đã mở tiện ích nổi luôn trên cùng (Always-on-top)',
+            pipFallback: 'Đang mở cửa sổ Tiện ích thu nhỏ...',
+            taskbarBtn: 'Ghim Taskbar',
+            taskbarSuccess: 'Đã mở thanh ngang tiện ích trên Taskbar',
+            taskbarError: 'Không thể mở thanh tác vụ HP-AI-Usage.exe',
             grid: 'Lưới',
             panel: 'Bảng bên',
             quotaAlert: 'CẢNH BÁO HẠN MỨC',
             limitReached: 'Cần được kiểm tra.',
             settingsTitle: 'Cài đặt cấu hình (Settings)',
             settingsDesc: 'Cấu hình thêm các khóa giao diện lập trình ứng dụng (API key) để theo dõi. Thông tin được lưu an toàn trong tệp .env cục bộ.',
-            pplxKeyLabel: 'Khóa API Perplexity (PERPLEXITY_API_KEY):',
             geminiKeyLabel: 'Khóa API Google Gemini (GEMINI_API_KEY):',
             geminiKeyNote: 'Hiện chưa được sử dụng: hạn mức Gemini đang đọc qua AntiGravity IDE. Khóa này chỉ được lưu sẵn cho lần mở rộng sau.',
             cancel: 'Hủy',
@@ -106,15 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
             controlLabels: {
                 'refresh-btn': { title: 'Làm mới dữ liệu tức thì', aria: 'Làm mới' },
                 'btn-open-pip-widget': { title: 'Mở tiện ích ghim trên cùng', aria: 'Ghim Widget' },
+                'btn-open-taskbar': { title: 'Mở thanh ngang trên taskbar', aria: 'Ghim Taskbar' },
                 'settings-btn': { title: 'Cài đặt khóa API', aria: 'Cài đặt' },
                 'lang-vi-btn': { title: 'Tiếng Việt' },
                 'lang-en-btn': { title: 'English' },
                 'view-grid-btn': { title: 'Hiển thị dạng lưới' },
                 'view-panel-btn': { title: 'Thu gọn thành bảng bên' },
                 'modal-close-btn': { aria: 'Đóng' }
-            },
-            pplxOpenConsole: '↗ Perplexity Console',
-            pplxConsoleNote: 'Perplexity không mở API tra cứu số dư cho tài khoản cá nhân. Bấm để kiểm tra số dư và hóa đơn trực tiếp.'
+            }
         },
         en: {
             ready: 'ready',
@@ -126,13 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
             pipBtn: 'Pin Widget',
             pipSuccess: 'Opened Always-on-top Floating Widget',
             pipFallback: 'Opening Desktop Widget window...',
+            taskbarBtn: 'Pin Taskbar',
+            taskbarSuccess: 'Opened Taskbar mini-bar',
+            taskbarError: 'Could not open HP-AI-Usage.exe taskbar app',
             grid: 'Grid',
             panel: 'Side Panel',
             quotaAlert: 'QUOTA ALERT',
             limitReached: 'Needs attention.',
             settingsTitle: 'Settings',
             settingsDesc: 'Configure additional API keys to monitor. Credentials are saved safely in your local .env file.',
-            pplxKeyLabel: 'Perplexity API Key (PERPLEXITY_API_KEY):',
             geminiKeyLabel: 'Google Gemini API Key (GEMINI_API_KEY):',
             geminiKeyNote: 'Not used yet: Gemini quotas are read through AntiGravity IDE. This key is only stored for a future extension.',
             cancel: 'Cancel',
@@ -166,15 +169,14 @@ document.addEventListener('DOMContentLoaded', () => {
             controlLabels: {
                 'refresh-btn': { title: 'Refresh data now', aria: 'Refresh' },
                 'btn-open-pip-widget': { title: 'Open the always-on-top widget', aria: 'Pin Widget' },
+                'btn-open-taskbar': { title: 'Open the taskbar mini-bar', aria: 'Pin Taskbar' },
                 'settings-btn': { title: 'API key settings', aria: 'Settings' },
                 'lang-vi-btn': { title: 'Vietnamese' },
                 'lang-en-btn': { title: 'English' },
                 'view-grid-btn': { title: 'Grid view' },
                 'view-panel-btn': { title: 'Side panel view' },
                 'modal-close-btn': { aria: 'Close' }
-            },
-            pplxOpenConsole: '↗ Open Perplexity Console',
-            pplxConsoleNote: 'Perplexity has no automated balance API for personal accounts. Click to check balance on Billing Console directly.'
+            }
         }
     };
 
@@ -183,16 +185,14 @@ document.addEventListener('DOMContentLoaded', () => {
         claude: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.5 12a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>`,
         chatgpt: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 12.5"/><path d="m12 12 6.3 7.8"/><path d="m12 12-6.3 7.8"/><path d="M12 12 5.7 4.2"/><path d="m12 12 6.3-7.8"/></svg>`,
         antigravity: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
-        gemini: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 24c-.4 0-.8-.3-.9-.7L8.6 15.4 0 12.9c-.4-.1-.7-.5-.7-.9s.3-.8.7-.9l8.6-2.5L11.1.7c.1-.4.5-.7.9-.7s.8.3.9.7l2.5 7.9 8.6 2.5c.4.1.7.5.7.9s-.3.8-.7.9l-8.6 2.5-2.5 7.9c-.1.4-.5.7-.9.7z"/></svg>`,
-        perplexity: `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>`
+        gemini: `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 24c-.4 0-.8-.3-.9-.7L8.6 15.4 0 12.9c-.4-.1-.7-.5-.7-.9s.3-.8.7-.9l8.6-2.5L11.1.7c.1-.4.5-.7.9-.7s.8.3.9.7l2.5 7.9 8.6 2.5c.4.1.7.5.7.9s-.3.8-.7.9l-8.6 2.5-2.5 7.9c-.1.4-.5.7-.9.7z"/></svg>`
     };
 
     const PROVIDER_NAMES = {
         claude: 'Claude',
         chatgpt: 'ChatGPT',
         antigravity: 'AntiGravity',
-        gemini: 'Gemini',
-        perplexity: 'Perplexity'
+        gemini: 'Gemini'
     };
 
     // Dùng chung từ usage-ui.js thay vì chép lại ở từng giao diện
@@ -312,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (textViewPanel) textViewPanel.textContent = dict.panel;
         if (btnRefreshText) btnRefreshText.textContent = dict.refresh;
         if (btnPipText) btnPipText.textContent = dict.pipBtn;
+        if (btnTaskbarText) btnTaskbarText.textContent = dict.taskbarBtn;
         if (footerLocalNote) footerLocalNote.textContent = dict.localOnly;
         if (urgentAlertBadge) urgentAlertBadge.textContent = dict.quotaAlert;
 
@@ -330,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Modal
         if (modalTitle) modalTitle.textContent = dict.settingsTitle;
         if (modalDesc) modalDesc.textContent = dict.settingsDesc;
-        if (labelPplxKey) labelPplxKey.textContent = dict.pplxKeyLabel;
         if (labelGeminiKey) labelGeminiKey.textContent = dict.geminiKeyLabel;
         const geminiNote = document.getElementById('note-gemini-key');
         if (geminiNote) geminiNote.textContent = dict.geminiKeyNote;
@@ -453,6 +453,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Mở thanh tác vụ HP-AI-Usage.exe
+    if (btnOpenTaskbar) {
+        btnOpenTaskbar.addEventListener('click', async () => {
+            if (btnOpenTaskbar.disabled) return;
+            const dict = DICTIONARY[currentLang];
+            btnOpenTaskbar.disabled = true;
+            btnOpenTaskbar.setAttribute('aria-busy', 'true');
+            try {
+                const response = await fetch('/api/taskbar/open', {
+                    method: 'POST',
+                    headers: { 'X-HP-Request': '1' }
+                });
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                showToast(dict.taskbarSuccess);
+            } catch (err) {
+                console.warn('Không thể khởi chạy thanh tác vụ:', err);
+                showToast(dict.taskbarError || ('Lỗi: ' + err.message));
+            } finally {
+                btnOpenTaskbar.disabled = false;
+                btnOpenTaskbar.removeAttribute('aria-busy');
+            }
+        });
+    }
+
     // Cài đặt
     // Cài đặt
     // Ghi nhớ nơi tiêu điểm bàn phím đang đứng để trả lại khi đóng hộp thoại
@@ -476,11 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/settings')
             .then(res => res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`)))
             .then(info => {
-                if (info.hasPerplexityKey) {
-                    inputPerplexity.placeholder = currentLang === 'en'
-                        ? `Configured (${info.maskedPerplexity}) - Leave blank to keep`
-                        : `Đã cấu hình (${info.maskedPerplexity}) - Để trống để giữ nguyên`;
-                }
                 if (info.hasGeminiKey) {
                     inputGemini.placeholder = currentLang === 'en'
                         ? `Configured (${info.maskedGemini}) - Leave blank to keep`
@@ -527,7 +549,6 @@ document.addEventListener('DOMContentLoaded', () => {
     modalSaveBtn.addEventListener('click', () => {
         const dict = DICTIONARY[currentLang];
         const payload = {
-            PERPLEXITY_API_KEY: inputPerplexity.value.trim(),
             GEMINI_API_KEY: inputGemini.value.trim()
         };
 
@@ -543,7 +564,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(res => {
                 if (res.success) {
                     closeSettingsModal();
-                    inputPerplexity.value = '';
                     inputGemini.value = '';
                     currentData = res.data;
                     renderDashboard(res.data);
@@ -850,40 +870,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                 } else if (m.type === 'info') {
-                    // Dựng câu chữ từ dữ liệu có cấu trúc thay vì bóc tách ngược
-                    // từ nhãn đã dịch sẵn của máy chủ.
-                    let val = m.value;
-                    let sub = m.label;
-                    if (m.metricKey === 'auth_status' && Number.isFinite(m.latencyMs)) {
-                        val = `${m.httpStatus || 200} OK (${m.latencyMs}ms)`;
-                        sub = '';
-                    } else if (m.metricKey === 'available_models' && Number.isFinite(m.count)) {
-                        val = currentLang === 'en' ? `${m.count} models` : `${m.count} mô hình`;
-                        sub = 'Sonar, GPT, Claude...';
-                    }
                     metricRow.innerHTML = `
                         <div class="metric-info">
                             <span class="metric-name" title="${escapeHTML(m.name)}">${escapeHTML(localizeMetric(m))}</span>
-                            <span class="metric-badge-info">${escapeHTML(val)}</span>
+                            <span class="metric-badge-info">${escapeHTML(m.value)}</span>
                         </div>
-                        ${sub ? `<div class="metric-sublabel">${escapeHTML(sub)}</div>` : ''}
-                    `;
-                } else if (m.type === 'action_link') {
-                    const actionBtnText = currentLang === 'en' ? dict.pplxOpenConsole : (m.actionText || dict.pplxOpenConsole);
-                    const noteText = currentLang === 'en' ? dict.pplxConsoleNote : (m.note || dict.pplxConsoleNote);
-                    metricRow.innerHTML = `
-                        <div class="metric-info">
-                            <span class="metric-name">${escapeHTML(localizeMetric(m))}</span>
-                        </div>
-                        <a href="${escapeHTML(safeUrl(m.url))}" target="_blank" rel="noopener noreferrer" class="metric-action-btn">
-                            <span>${escapeHTML(actionBtnText)}</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                                <polyline points="15 3 21 3 21 9"></polyline>
-                                <line x1="21" y1="3" x2="9" y2="15"></line>
-                            </svg>
-                        </a>
-                        ${noteText ? `<div class="metric-note">${escapeHTML(noteText)}</div>` : ''}
+                        ${m.label ? `<div class="metric-sublabel">${escapeHTML(m.label)}</div>` : ''}
                     `;
                 } else {
                     const used = ui.getUsedPercent(m);

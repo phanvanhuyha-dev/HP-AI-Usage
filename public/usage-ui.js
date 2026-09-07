@@ -7,7 +7,7 @@
         root.UsageUI = api;
     }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createUsageUI() {
-    const PROVIDER_ORDER = ['claude', 'chatgpt', 'antigravity', 'gemini', 'perplexity'];
+    const PROVIDER_ORDER = ['claude', 'chatgpt', 'antigravity', 'gemini'];
 
     // Hai hàm này trước đây được chép nguyên văn ở cả app.js lẫn widget.js
     function escapeHTML(value) {

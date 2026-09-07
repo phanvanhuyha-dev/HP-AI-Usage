@@ -20,26 +20,26 @@ assert.equal(healthy.topMetric.usedPercent, 70);
 assert.equal(healthy.remainingPercent, 30);
 assert.equal(healthy.severity, 'warning');
 
-const failedPerplexity = ui.getProviderSummary({
-    id: 'perplexity',
-    name: 'Perplexity',
+const failedProvider = ui.getProviderSummary({
+    id: 'mock-provider',
+    name: 'Mock Provider',
     status: 'error',
     metrics: []
 });
-assert.equal(failedPerplexity.providerState, 'error');
-assert.equal(failedPerplexity.severity, 'critical');
-assert.equal(failedPerplexity.remainingPercent, null);
+assert.equal(failedProvider.providerState, 'error');
+assert.equal(failedProvider.severity, 'critical');
+assert.equal(failedProvider.remainingPercent, null);
 
 const activeInfoProvider = ui.getProviderSummary({
-    id: 'perplexity',
-    name: 'Perplexity',
+    id: 'mock-provider',
+    name: 'Mock Provider',
     status: 'active',
     metrics: [{ type: 'info', value: '200 OK' }]
 });
 assert.equal(activeInfoProvider.severity, 'normal');
 
-const sorted = ui.sortByAttention([healthy, failedPerplexity, activeInfoProvider]);
-assert.equal(sorted[0].id, 'perplexity');
+const sorted = ui.sortByAttention([healthy, failedProvider, activeInfoProvider]);
+assert.equal(sorted[0].id, 'mock-provider');
 assert.equal(sorted[0].status, 'error');
 
 // Kiểm thử ưu tiên hạn mức phiên 5 giờ (session) hơn hạn mức tuần (weekly)

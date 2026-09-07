@@ -4,13 +4,12 @@
 
 HP-AI-Usage runs entirely on your own machine. To read usage quotas it accesses:
 
-- `~/.claude/.credentials.json` — the Claude Code session (OAuth access token)
-- `~/.codex/auth.json` — the Codex CLI session (OAuth access token)
+- `~/.claude/.credentials.json`: the Claude Code session (OAuth access token)
+- `~/.codex/auth.json`: the Codex CLI session (OAuth access token)
 - The `--csrf_token` argument on the AntiGravity IDE language-server process command line
-- `PERPLEXITY_API_KEY` from your local `.env`, if you set one
 
 Access tokens are sent only to the matching provider's own servers:
-`api.anthropic.com`, `chatgpt.com`, `api.perplexity.ai`, and the AntiGravity
+`api.anthropic.com`, `chatgpt.com`, and the AntiGravity
 language server on `127.0.0.1`. Nothing is sent to any third party, and the
 built-in web server binds to `127.0.0.1` only.
 

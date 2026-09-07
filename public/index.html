@@ -97,6 +97,17 @@
                     <span id="btn-pip-text">Ghim Widget</span>
                 </button>
 
+                <!-- Nút ghim Thanh tác vụ (Always-on-Top Taskbar Mini-bar) -->
+                <button type="button" id="btn-open-taskbar" class="btn btn-primary btn-compact" title="Mở thanh ngang trên taskbar" aria-label="Ghim Taskbar">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M2 15h20"/>
+                        <rect x="5" y="17" width="2" height="1" fill="currentColor"/>
+                        <rect x="8" y="17" width="2" height="1" fill="currentColor"/>
+                    </svg>
+                    <span id="btn-taskbar-text">Ghim Taskbar</span>
+                </button>
+
                 <button type="button" id="settings-btn" class="btn btn-ghost" title="Cài đặt khóa API" aria-label="Cài đặt">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
@@ -141,12 +152,6 @@
             </div>
             <div class="modal-body">
                 <p id="modal-desc" class="modal-desc">Cấu hình thêm các khóa giao diện lập trình ứng dụng (API key) để theo dõi. Thông tin được lưu an toàn trong tệp <code>.env</code> cục bộ.</p>
-                
-                <div class="form-group">
-                    <label id="label-pplx-key" for="input-perplexity-key">Khóa API Perplexity (PERPLEXITY_API_KEY):</label>
-                    <input type="password" id="input-perplexity-key" placeholder="pplx-..." autocomplete="off">
-                    <small>Lấy tại: <a href="https://www.perplexity.ai/settings/api" target="_blank" rel="noopener">Perplexity API Settings</a></small>
-                </div>
 
                 <div class="form-group">
                     <label id="label-gemini-key" for="input-gemini-key">Khóa API Google Gemini (GEMINI_API_KEY):</label>

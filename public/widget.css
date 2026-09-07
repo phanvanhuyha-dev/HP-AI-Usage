@@ -15,7 +15,6 @@
     --chatgpt: #32d6aa;
     --antigravity: #23c9e8;
     --gemini: #a98bff;
-    --perplexity: #32cbbc;
 }
 
 * {
@@ -137,7 +136,6 @@ button.widget-tile:hover {
 .widget-tile.chatgpt { --accent: var(--chatgpt); }
 .widget-tile.antigravity { --accent: var(--antigravity); }
 .widget-tile.gemini { --accent: var(--gemini); }
-.widget-tile.perplexity { --accent: var(--perplexity); }
 
 .tile-top { min-width: 0; justify-content: space-between; gap: 3px; }
 .tile-provider { min-width: 0; gap: clamp(2px, 4.5cqi, 6px); }

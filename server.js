@@ -1,11 +1,10 @@
-﻿const http = require('http');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { scanClaude } = require('./scanners/claude');
 const { scanCodex } = require('./scanners/codex');
 const { scanAntigravityAndGemini } = require('./scanners/antigravity');
-const { scanPerplexity } = require('./scanners/perplexity');
 const { loadEnv } = require('./lib/env');
 
 // Tải biến môi trường từ .env
@@ -14,6 +13,8 @@ loadEnv();
 const PORT = parseInt(process.env.PORT || '6736', 10);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const WIDGET_LAUNCHER = path.join(__dirname, 'widget-desktop.ps1');
+const TASKBAR_EXE = path.join(__dirname, 'HP-AI-Usage.exe');
+const TASKBAR_BAT = path.join(__dirname, 'start-taskbar-widget.bat');
 
 // Bộ nhớ đệm (cache) dữ liệu
 let usageCache = null;
@@ -31,8 +32,7 @@ const PROVIDER_NAMES = {
     claude: 'Claude',
     chatgpt: 'ChatGPT',
     antigravity: 'AntiGravity',
-    gemini: 'Gemini',
-    perplexity: 'Perplexity'
+    gemini: 'Gemini'
 };
 
 // Chỗ giữ tạm cho nhà cung cấp chưa quét xong, để lần tải đầu tiên vẫn vẽ được
@@ -66,7 +66,7 @@ function broadcastUsage(data) {
 }
 
 /**
- * Quét toàn bộ 5 nhà cung cấp (Claude, ChatGPT, AntiGravity, Gemini, Perplexity)
+ * Quét toàn bộ 4 nhà cung cấp (Claude, ChatGPT, AntiGravity, Gemini)
  */
 async function fetchAllUsage(force = false, forceProviders = force) {
     const now = Date.now();
@@ -130,18 +130,11 @@ async function fetchAllUsage(force = false, forceProviders = force) {
                 publishPartial({ antigravity: result.antigravity, gemini: result.gemini });
                 return result;
             });
-        const perplexityTask = scanPerplexity(forceProviders)
-            .catch(err => ({ id: 'perplexity', name: 'Perplexity', status: 'error', message: err.message, metrics: [] }))
-            .then(result => {
-                publishPartial({ perplexity: result });
-                return result;
-            });
 
-        const [claude, codex, agGemini, perplexity] = await Promise.all([
+        const [claude, codex, agGemini] = await Promise.all([
             claudeTask,
             codexTask,
-            antigravityTask,
-            perplexityTask
+            antigravityTask
         ]);
 
         usageCache = {
@@ -150,8 +143,7 @@ async function fetchAllUsage(force = false, forceProviders = force) {
                 claude,
                 chatgpt: codex,
                 antigravity: agGemini.antigravity,
-                gemini: agGemini.gemini,
-                perplexity
+                gemini: agGemini.gemini
             }
         };
         lastScanTime = Date.now();
@@ -378,6 +370,41 @@ async function handleRequest(req, res) {
         return;
     }
 
+    // Mở thanh tác vụ HP-AI-Usage.exe
+    if (pathname === '/api/taskbar/open' && req.method === 'POST') {
+        if (!hasTrustedHeader(req, res)) return;
+        if (process.platform !== 'win32' || (!fs.existsSync(TASKBAR_EXE) && !fs.existsSync(TASKBAR_BAT))) {
+            res.writeHead(501, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: false, error: 'Thanh tác vụ không khả dụng trên hệ thống này' }));
+            return;
+        }
+
+        try {
+            if (fs.existsSync(TASKBAR_EXE)) {
+                const child = spawn(TASKBAR_EXE, [], {
+                    cwd: __dirname,
+                    detached: true,
+                    stdio: 'ignore'
+                });
+                child.unref();
+            } else {
+                const child = spawn('cmd.exe', ['/c', TASKBAR_BAT], {
+                    cwd: __dirname,
+                    detached: true,
+                    stdio: 'ignore'
+                });
+                child.unref();
+            }
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: true }));
+        } catch (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+        return;
+    }
+
     // API: Lấy tùy chọn người dùng đã lưu
     if (pathname === '/api/preferences' && req.method === 'GET') {
         const prefs = loadPreferences();
@@ -405,8 +432,6 @@ async function handleRequest(req, res) {
             return `${key.slice(0, 4)}...${key.slice(-4)}`;
         };
         const settings = {
-            hasPerplexityKey: !!process.env.PERPLEXITY_API_KEY,
-            maskedPerplexity: mask(process.env.PERPLEXITY_API_KEY),
             hasGeminiKey: !!process.env.GEMINI_API_KEY,
             maskedGemini: mask(process.env.GEMINI_API_KEY)
         };
@@ -526,7 +551,7 @@ function serveFile(filePath, res, req, stats) {
 }
 
 // Các khóa mà giao diện Cài đặt được phép ghi vào .env
-const EDITABLE_ENV_KEYS = ['PERPLEXITY_API_KEY', 'GEMINI_API_KEY'];
+const EDITABLE_ENV_KEYS = ['GEMINI_API_KEY'];
 const MAX_ENV_VALUE_LENGTH = 500;
 
 function assertValidEnvValue(key, value) {

@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=18"
   },
-  "description": "Bảng điều khiển theo dõi hạn mức sử dụng (usage monitor) cho Claude, ChatGPT, Gemini, AntiGravity và Perplexity trên Windows",
+  "description": "Màn hình tổng hợp theo dõi hạn mức sử dụng (usage monitor) cho Claude, ChatGPT, Gemini và AntiGravity trên Windows",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -18,8 +18,7 @@
     "claude",
     "chatgpt",
     "antigravity",
-    "gemini",
-    "perplexity"
+    "gemini"
   ],
   "author": "",
   "license": "MIT"

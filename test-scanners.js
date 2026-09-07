@@ -10,7 +10,6 @@ const assert = require('node:assert/strict');
 const { scanClaude } = require('./scanners/claude');
 const { scanCodex } = require('./scanners/codex');
 const { scanAntigravityAndGemini } = require('./scanners/antigravity');
-const { scanPerplexity } = require('./scanners/perplexity');
 const i18n = require('./public/i18n');
 const ui = require('./public/usage-ui');
 
@@ -71,18 +70,16 @@ function assertProviderShape(name, p) {
 (async () => {
     console.log('\n=== Kiểm thử hợp đồng dữ liệu của bộ quét ===\n');
 
-    const [claude, codex, agGemini, pplx] = await Promise.all([
+    const [claude, codex, agGemini] = await Promise.all([
         scanClaude(),
         scanCodex(),
-        scanAntigravityAndGemini(),
-        scanPerplexity()
+        scanAntigravityAndGemini()
     ]);
 
     assertProviderShape('claude', claude);
     assertProviderShape('chatgpt', codex);
     assertProviderShape('antigravity', agGemini.antigravity);
     assertProviderShape('gemini', agGemini.gemini);
-    assertProviderShape('perplexity', pplx);
 
     check('claude: tên gói đọc từ phiên đăng nhập, không ghi cứng', () => {
         if (claude.status !== 'active') return;
@@ -90,17 +87,16 @@ function assertProviderShape(name, p) {
         assert.ok(/^Claude /.test(claude.plan), `tên gói lạ: ${claude.plan}`);
     });
 
-    check('mô hình giao diện tóm tắt được cả 5 nhà cung cấp', () => {
+    check('mô hình giao diện tóm tắt được cả 4 nhà cung cấp', () => {
         const summaries = ui.getProviderSummaries({
             claude, chatgpt: codex,
-            antigravity: agGemini.antigravity, gemini: agGemini.gemini,
-            perplexity: pplx
+            antigravity: agGemini.antigravity, gemini: agGemini.gemini
         }, {});
-        assert.equal(summaries.length, 5);
+        assert.equal(summaries.length, 4);
     });
 
     console.log('\nTrạng thái hiện tại:');
-    for (const [id, p] of Object.entries({ claude, chatgpt: codex, antigravity: agGemini.antigravity, gemini: agGemini.gemini, perplexity: pplx })) {
+    for (const [id, p] of Object.entries({ claude, chatgpt: codex, antigravity: agGemini.antigravity, gemini: agGemini.gemini })) {
         const top = p.metrics.filter(ui.isQuotaMetric).sort(ui.compareMetricsPriority)[0];
         console.log('  ' + id.padEnd(12) + p.status.padEnd(16)
             + (top ? `${top.usedPercent}% ${i18n.metricLabel(top, 'vi')}` : (p.plan || '')));

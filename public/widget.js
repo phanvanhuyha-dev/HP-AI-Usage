@@ -172,9 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
             metricLabel = localizeMetric(summary.topMetric);
             resetAt = summary.raw.stale ? '' : (summary.topMetric.resetsAt || '');
             resetLabel = summary.raw.stale ? text().stale : formatCountdown(resetAt);
-        } else if (summary.id === 'perplexity') {
-            center = `<span class="tile-state-icon"><span class="tile-number status-word">${escapeHTML(text().apiOk)}</span></span>`;
-            metricLabel = summary.infoMetric ? (summary.infoMetric.label || summary.infoMetric.value) : text().serviceReady;
         } else {
             center = `<span class="tile-state-icon"><span class="tile-number status-word">${escapeHTML(text().apiOk)}</span></span>`;
             metricLabel = text().serviceReady;
@@ -228,8 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderWidget(data) {
         if (!data || !data.providers) return;
-        const summaries = ui.getProviderSummaries(data.providers, pinnedMetrics)
-            .filter(item => item.id !== 'perplexity');
+        const summaries = ui.getProviderSummaries(data.providers, pinnedMetrics);
         hasStaleProviders = summaries.some(item => item.raw.stale);
         const attentionCount = summaries.filter(item => item.severity !== 'normal').length;
         const overallSeverity = summaries.some(item => item.severity === 'critical')
@@ -293,7 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function openDetail(providerId) {
         if (!currentData) return;
         const summary = ui.getProviderSummaries(currentData.providers, pinnedMetrics)
-            .filter(item => item.id !== 'perplexity')
             .find(item => item.id === providerId);
         if (!summary) return;
         selectedProviderId = providerId;

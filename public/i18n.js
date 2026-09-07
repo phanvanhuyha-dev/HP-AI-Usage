@@ -70,9 +70,7 @@
             codex_connection_error: 'Không kết nối được máy chủ ChatGPT, hoặc mã truy cập đã hết hạn.',
             antigravity_not_running: 'Chưa phát hiện AntiGravity IDE. Hãy mở ứng dụng AntiGravity.',
             gemini_not_running: 'AntiGravity IDE chưa chạy nên chưa lấy được hạn mức Gemini.',
-            antigravity_quota_error: 'Không lấy được thông tin hạn mức từ máy chủ AntiGravity.',
-            pplx_not_configured: 'Chưa cấu hình khóa API Perplexity. Hãy bấm vào Cài đặt để thêm.',
-            pplx_invalid_key: 'Khóa API Perplexity không hợp lệ.'
+            antigravity_quota_error: 'Không lấy được thông tin hạn mức từ máy chủ AntiGravity.'
         },
         en: {
             claude_not_configured: 'Claude Code CLI session not found (not read from claude.ai web). Run "npm i -g @anthropic-ai/claude-code" then "claude" in terminal to authenticate.',
@@ -87,22 +85,18 @@
             codex_connection_error: 'Could not reach ChatGPT, or the access token has expired.',
             antigravity_not_running: 'AntiGravity IDE is not running. Please launch the app.',
             gemini_not_running: 'AntiGravity IDE is not running, so Gemini quotas are unavailable.',
-            antigravity_quota_error: 'Could not read quota information from the AntiGravity server.',
-            pplx_not_configured: 'No Perplexity API key configured. Add one in Settings.',
-            pplx_invalid_key: 'The Perplexity API key is not valid.'
+            antigravity_quota_error: 'Could not read quota information from the AntiGravity server.'
         }
     };
 
     const PLAN_LABELS = {
         vi: {
             'Google DeepMind IDE': 'DeepMind IDE',
-            'Gemini Pro & Flash Pool': 'Gemini Pool',
-            'Perplexity API': 'Perplexity API'
+            'Gemini Pro & Flash Pool': 'Gemini Pool'
         },
         en: {
             'Google DeepMind IDE': 'DeepMind IDE',
-            'Gemini Pro & Flash Pool': 'Gemini Pool',
-            'Perplexity API': 'Perplexity API'
+            'Gemini Pro & Flash Pool': 'Gemini Pool'
         }
     };
 
