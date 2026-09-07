@@ -58,12 +58,12 @@
 
     const MESSAGE_LABELS = {
         vi: {
-            claude_not_configured: 'Chưa tìm thấy phiên Claude Code. Hãy chạy lệnh "claude" trên cửa sổ dòng lệnh để đăng nhập.',
+            claude_not_configured: 'Chưa tìm thấy phiên Claude Code CLI (không đọc từ web claude.ai). Hãy cài đặt bằng lệnh: "npm i -g @anthropic-ai/claude-code" rồi chạy "claude" trên cửa sổ dòng lệnh để đăng nhập.',
             claude_bad_credentials: 'Tệp thông tin xác thực (.credentials.json) bị lỗi định dạng JSON.',
             claude_not_logged_in: 'Không tìm thấy mã truy cập trong tệp thông tin xác thực Claude Code.',
             claude_rate_limited: 'Anthropic đang giới hạn tần suất yêu cầu. Hệ thống sẽ tự kết nối lại sau ít phút.',
             claude_connection_error: 'Không kết nối được máy chủ Anthropic, hoặc phiên đăng nhập cần được làm mới.',
-            codex_not_configured: 'Chưa tìm thấy tệp xác thực Codex CLI (~/.codex/auth.json).',
+            codex_not_configured: 'Chưa tìm thấy tệp xác thực Codex CLI (~/.codex/auth.json). Dữ liệu được đọc từ công cụ dòng lệnh OpenAI (không đọc từ web chatgpt.com).',
             codex_bad_auth: 'Tệp auth.json của Codex bị lỗi cú pháp.',
             codex_not_logged_in: 'Không tìm thấy mã truy cập trong tệp auth.json.',
             codex_rate_limited: 'ChatGPT đang giới hạn tần suất yêu cầu. Hệ thống sẽ tự kết nối lại sau ít phút.',
@@ -75,12 +75,12 @@
             pplx_invalid_key: 'Khóa API Perplexity không hợp lệ.'
         },
         en: {
-            claude_not_configured: 'Claude Code is not signed in. Run "claude" in a terminal to authenticate.',
+            claude_not_configured: 'Claude Code CLI session not found (not read from claude.ai web). Run "npm i -g @anthropic-ai/claude-code" then "claude" in terminal to authenticate.',
             claude_bad_credentials: 'The Claude credentials file (.credentials.json) is not valid JSON.',
             claude_not_logged_in: 'No access token found in the Claude Code credentials file.',
             claude_rate_limited: 'Anthropic is rate limiting requests. HP-AI-Usage will retry in a few minutes.',
             claude_connection_error: 'Could not reach Anthropic, or the session needs to be refreshed.',
-            codex_not_configured: 'Codex CLI credentials not found (~/.codex/auth.json).',
+            codex_not_configured: 'Codex CLI credentials not found (~/.codex/auth.json). Metrics are read from OpenAI Codex CLI (not from chatgpt.com web).',
             codex_bad_auth: 'The Codex auth.json file is not valid JSON.',
             codex_not_logged_in: 'No access token found in auth.json.',
             codex_rate_limited: 'ChatGPT is rate limiting requests. HP-AI-Usage will retry in a few minutes.',

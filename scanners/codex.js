@@ -100,7 +100,7 @@ async function scanCodex(force = false) {
         const credPath = path.join(os.homedir(), '.codex', 'auth.json');
         if (!fs.existsSync(credPath)) {
             return providerResult('chatgpt', 'ChatGPT', 'not_configured',
-                'Chưa tìm thấy tệp xác thực Codex CLI (~/.codex/auth.json).',
+                'Chưa tìm thấy tệp xác thực Codex CLI (~/.codex/auth.json). Dữ liệu được đọc từ công cụ dòng lệnh OpenAI (không đọc từ web chatgpt.com).',
                 { messageKey: 'codex_not_configured' });
         }
 

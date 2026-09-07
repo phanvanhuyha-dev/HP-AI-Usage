@@ -244,7 +244,7 @@ async function scanClaude(force = false) {
         const credPath = path.join(os.homedir(), '.claude', '.credentials.json');
         if (!fs.existsSync(credPath)) {
             return providerResult('claude', 'Claude', 'not_configured',
-                'Chưa tìm thấy phiên Claude Code. Hãy chạy lệnh "claude" trên cửa sổ dòng lệnh để đăng nhập.',
+                'Chưa tìm thấy phiên Claude Code CLI (không đọc từ web claude.ai). Hãy cài đặt bằng lệnh "npm i -g @anthropic-ai/claude-code" rồi chạy "claude" để đăng nhập.',
                 { plan: 'Chưa đăng nhập', messageKey: 'claude_not_configured' });
         }
 
