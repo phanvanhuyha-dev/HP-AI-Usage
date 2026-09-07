@@ -329,7 +329,8 @@ body {
 
 @media (max-width: 1380px) {
     #btn-refresh-text,
-    #btn-pip-text {
+    #btn-pip-text,
+    #btn-taskbar-text {
         display: none !important;
     }
     #pill-metrics {
