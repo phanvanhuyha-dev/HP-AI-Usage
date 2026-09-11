@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusPending: 'Chờ kiểm tra',
             resetsIn: 'Đặt lại:',
             resetting: 'Đang đặt lại...',
+            resetDue: 'Đến hạn đặt lại',
             toastRefreshSuccess: 'Đã làm mới dữ liệu hạn mức thành công',
             toastSettingsSuccess: 'Đã cập nhật cài đặt thành công',
             toastRefreshError: 'Lỗi khi làm mới: ',
@@ -150,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusPending: 'Check needed',
             resetsIn: 'Resets:',
             resetting: 'Resetting...',
+            resetDue: 'Reset due',
             toastRefreshSuccess: 'Usage metrics refreshed successfully',
             toastSettingsSuccess: 'Settings updated successfully',
             toastRefreshError: 'Refresh error: ',
@@ -962,7 +964,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const diff = target - now;
 
-        if (diff <= 0) return dict.resetting;
+        if (diff <= 0) {
+            if (diff > -60000) return dict.resetting;
+            return dict.resetDue;
+        }
         return `${dict.resetsIn} ${formatTimeDiff(diff)}`;
     }
 
@@ -979,15 +984,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${seconds}s`;
     }
 
+    let autoCountdownRefreshTimer = null;
     function updateLiveCountdowns() {
         const elements = document.querySelectorAll('[data-resets-at]');
+        let shouldAutoRefresh = false;
         elements.forEach(el => {
             const iso = el.getAttribute('data-resets-at');
             const textSpan = el.querySelector('.countdown-text');
             if (textSpan && iso) {
                 textSpan.textContent = formatCountdown(iso);
+                const diff = new Date(iso) - new Date();
+                if (diff <= 0 && diff > -10000) {
+                    shouldAutoRefresh = true;
+                }
             }
         });
+        if (shouldAutoRefresh && !autoCountdownRefreshTimer) {
+            autoCountdownRefreshTimer = setTimeout(() => {
+                autoCountdownRefreshTimer = null;
+                fetchUsage(false);
+            }, 6000);
+        }
     }
 
     function showToast(msg) {

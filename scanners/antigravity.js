@@ -164,42 +164,47 @@ async function listListeningPorts(pid) {
  * Toàn bộ việc gọi tiến trình con là bất đồng bộ, không chặn vòng lặp sự kiện.
  */
 async function discoverLanguageServer() {
-    let stdout = '';
-    try {
-        const script = "Get-CimInstance Win32_Process -Filter \"name like 'language_server%'\" | Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress";
-        ({ stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-            timeout: 8000,
-            windowsHide: true,
-            maxBuffer: 4 * 1024 * 1024
-        }));
-    } catch {
-        return null;
-    }
+    return Promise.race([
+        (async () => {
+            let stdout = '';
+            try {
+                const script = "Get-CimInstance Win32_Process -Filter \"name like 'language_server%'\" | Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress";
+                ({ stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+                    timeout: 6000,
+                    windowsHide: true,
+                    maxBuffer: 4 * 1024 * 1024
+                }));
+            } catch {
+                return null;
+            }
 
-    const raw = stdout ? stdout.trim() : '';
-    if (!raw) return null;
+            const raw = stdout ? stdout.trim() : '';
+            if (!raw) return null;
 
-    let list;
-    try {
-        list = JSON.parse(raw);
-    } catch {
-        return null;
-    }
+            let list;
+            try {
+                list = JSON.parse(raw);
+            } catch {
+                return null;
+            }
 
-    for (const item of Array.isArray(list) ? list : [list]) {
-        if (!item) continue;
-        const pid = Number(item.ProcessId);
-        if (!Number.isInteger(pid)) continue;
+            for (const item of Array.isArray(list) ? list : [list]) {
+                if (!item) continue;
+                const pid = Number(item.ProcessId);
+                if (!Number.isInteger(pid)) continue;
 
-        const csrfMatch = String(item.CommandLine || '').match(/--csrf_token[=\s]+([^\s]+)/);
-        if (!csrfMatch) continue;
+                const csrfMatch = String(item.CommandLine || '').match(/--csrf_token[=\s]+([^\s]+)/);
+                if (!csrfMatch) continue;
 
-        const ports = await listListeningPorts(pid);
-        if (ports.length > 0) {
-            return { pid, csrf: csrfMatch[1], ports };
-        }
-    }
-    return null;
+                const ports = await listListeningPorts(pid);
+                if (ports.length > 0) {
+                    return { pid, csrf: csrfMatch[1], ports };
+                }
+            }
+            return null;
+        })(),
+        new Promise(resolve => setTimeout(() => resolve(null), 7000))
+    ]);
 }
 
 function isValidQuotaResponse(data) {
@@ -242,6 +247,17 @@ async function fetchQuotaSummary() {
  */
 function queryQuotaSummary(port, csrf) {
     return new Promise((resolve) => {
+        let settled = false;
+        const done = (val) => {
+            if (settled) return;
+            settled = true;
+            resolve(val);
+        };
+
+        const timer = setTimeout(() => {
+            done(null);
+        }, 5000);
+
         const body = JSON.stringify({
             metadata: {
                 ideName: 'antigravity',
@@ -268,18 +284,23 @@ function queryQuotaSummary(port, csrf) {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
+                clearTimeout(timer);
                 try {
-                    resolve(JSON.parse(data));
+                    done(JSON.parse(data));
                 } catch {
-                    resolve(null);
+                    done(null);
                 }
             });
         });
 
-        req.on('error', () => resolve(null));
+        req.on('error', () => {
+            clearTimeout(timer);
+            done(null);
+        });
         req.on('timeout', () => {
             req.destroy();
-            resolve(null);
+            clearTimeout(timer);
+            done(null);
         });
         req.write(body);
         req.end();

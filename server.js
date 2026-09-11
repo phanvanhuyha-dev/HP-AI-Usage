@@ -65,6 +65,17 @@ function broadcastUsage(data) {
     }
 }
 
+function withTimeout(promise, ms, fallback) {
+    let timer;
+    const timeoutPromise = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+    });
+    return Promise.race([
+        promise.then(res => { clearTimeout(timer); return res; }),
+        timeoutPromise
+    ]);
+}
+
 /**
  * Quét toàn bộ 4 nhà cung cấp (Claude, ChatGPT, AntiGravity, Gemini)
  */
@@ -109,27 +120,41 @@ async function fetchAllUsage(force = false, forceProviders = force) {
             broadcastUsage(usageCache);
         };
 
-        const claudeTask = scanClaude(forceProviders)
-            .catch(err => ({ id: 'claude', name: 'Claude', status: 'error', message: err.message, metrics: [] }))
-            .then(result => {
-                publishPartial({ claude: result });
-                return result;
-            });
-        const codexTask = scanCodex(forceProviders)
-            .catch(err => ({ id: 'chatgpt', name: 'ChatGPT', status: 'error', message: err.message, metrics: [] }))
-            .then(result => {
-                publishPartial({ chatgpt: result });
-                return result;
-            });
-        const antigravityTask = scanAntigravityAndGemini()
-            .catch(err => ({
+        const claudeFallback = { id: 'claude', name: 'Claude', status: 'error', message: 'Quá thời gian quét Claude', metrics: [] };
+        const claudeTask = withTimeout(
+            scanClaude(forceProviders).catch(err => ({ id: 'claude', name: 'Claude', status: 'error', message: err.message, metrics: [] })),
+            10000,
+            claudeFallback
+        ).then(result => {
+            publishPartial({ claude: result });
+            return result;
+        });
+
+        const codexFallback = { id: 'chatgpt', name: 'ChatGPT', status: 'error', message: 'Quá thời gian quét ChatGPT', metrics: [] };
+        const codexTask = withTimeout(
+            scanCodex(forceProviders).catch(err => ({ id: 'chatgpt', name: 'ChatGPT', status: 'error', message: err.message, metrics: [] })),
+            10000,
+            codexFallback
+        ).then(result => {
+            publishPartial({ chatgpt: result });
+            return result;
+        });
+
+        const agGeminiFallback = {
+            antigravity: { id: 'antigravity', name: 'AntiGravity', status: 'error', message: 'Quá thời gian quét AntiGravity', metrics: [] },
+            gemini: { id: 'gemini', name: 'Gemini', status: 'error', message: 'Quá thời gian quét Gemini', metrics: [] }
+        };
+        const antigravityTask = withTimeout(
+            scanAntigravityAndGemini().catch(err => ({
                 antigravity: { id: 'antigravity', name: 'AntiGravity', status: 'error', message: err.message, metrics: [] },
                 gemini: { id: 'gemini', name: 'Gemini', status: 'error', message: err.message, metrics: [] }
-            }))
-            .then(result => {
-                publishPartial({ antigravity: result.antigravity, gemini: result.gemini });
-                return result;
-            });
+            })),
+            10000,
+            agGeminiFallback
+        ).then(result => {
+            publishPartial({ antigravity: result.antigravity, gemini: result.gemini });
+            return result;
+        });
 
         const [claude, codex, agGemini] = await Promise.all([
             claudeTask,
@@ -152,7 +177,13 @@ async function fetchAllUsage(force = false, forceProviders = force) {
     })();
 
     try {
-        return await activeScanPromise;
+        const timeoutGuard = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Vòng quét quá thời gian tối đa (15s)')), 15000)
+        );
+        return await Promise.race([activeScanPromise, timeoutGuard]);
+    } catch (err) {
+        console.error('Vòng quét gặp lỗi:', err.message);
+        return usageCache || { timestamp: new Date().toISOString(), providers: pendingProviders() };
     } finally {
         isScanning = false;
         activeScanPromise = null;

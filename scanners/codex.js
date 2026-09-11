@@ -92,6 +92,102 @@ function buildCodexResult(usageData) {
     };
 }
 
+const OPENAI_CLIENT_ID = 'app_EMoamEEZ73f0CkXaXp7hrann';
+
+async function refreshCodexToken(creds, credPath) {
+    const refreshToken = creds?.tokens?.refresh_token;
+    if (!refreshToken) return null;
+
+    try {
+        const result = await new Promise((resolve) => {
+            let settled = false;
+            const done = (val) => {
+                if (settled) return;
+                settled = true;
+                resolve(val);
+            };
+
+            const timer = setTimeout(() => {
+                done({ success: false });
+            }, 10000);
+
+            const body = JSON.stringify({
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+                client_id: OPENAI_CLIENT_ID
+            });
+
+            const req = https.request({
+                hostname: 'auth.openai.com',
+                path: '/oauth/token',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(body)
+                },
+                timeout: 8000
+            }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    clearTimeout(timer);
+                    if (res.statusCode !== 200) {
+                        return done({ success: false, statusCode: res.statusCode });
+                    }
+                    try {
+                        done({ success: true, data: JSON.parse(data) });
+                    } catch {
+                        done({ success: false });
+                    }
+                });
+            });
+
+            req.on('error', () => {
+                clearTimeout(timer);
+                done({ success: false });
+            });
+            req.on('timeout', () => {
+                req.destroy();
+                clearTimeout(timer);
+                done({ success: false });
+            });
+            req.write(body);
+            req.end();
+        });
+
+        if (result.success && result.data?.access_token) {
+            creds.tokens.access_token = result.data.access_token;
+            if (result.data.refresh_token) {
+                creds.tokens.refresh_token = result.data.refresh_token;
+            }
+            if (result.data.id_token) {
+                creds.tokens.id_token = result.data.id_token;
+            }
+            creds.last_refresh = new Date().toISOString();
+            fs.writeFileSync(credPath, JSON.stringify(creds, null, 2), 'utf8');
+            return result.data.access_token;
+        }
+    } catch {
+        // bỏ qua lỗi làm mới mã
+    }
+    return null;
+}
+
+function isJwtExpired(jwtToken) {
+    if (!jwtToken || typeof jwtToken !== 'string') return false;
+    try {
+        const parts = jwtToken.split('.');
+        if (parts.length < 2) return false;
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+        if (payload && payload.exp) {
+            return Date.now() >= (payload.exp * 1000) - 120000;
+        }
+    } catch {
+        return false;
+    }
+    return false;
+}
+
 /**
  * Thu thập dữ liệu hạn mức ChatGPT / Codex từ tệp xác thực auth.json
  */
@@ -111,11 +207,16 @@ async function scanCodex(force = false) {
             return codexError('Tệp auth.json của Codex bị lỗi cú pháp.', { messageKey: 'codex_bad_auth' });
         }
 
-        const token = creds.tokens?.access_token || creds.tokens?.accessToken || creds.access_token;
+        let token = creds.tokens?.access_token || creds.tokens?.accessToken || creds.access_token;
         if (!token) {
             return providerResult('chatgpt', 'ChatGPT', 'not_logged_in',
                 'Không tìm thấy mã truy cập (access token) trong auth.json.',
                 { messageKey: 'codex_not_logged_in' });
+        }
+
+        if (isJwtExpired(token)) {
+            const refreshed = await refreshCodexToken(creds, credPath);
+            if (refreshed) token = refreshed;
         }
 
         const now = Date.now();
@@ -132,7 +233,15 @@ async function scanCodex(force = false) {
             return cachedCodexResult;
         }
 
-        const response = await fetchCodexUsage(token);
+        let response = await fetchCodexUsage(token);
+
+        if (response.statusCode === 401) {
+            const refreshed = await refreshCodexToken(creds, credPath);
+            if (refreshed) {
+                token = refreshed;
+                response = await fetchCodexUsage(token);
+            }
+        }
 
         if (response.success && response.data) {
             cachedCodexResult = buildCodexResult(response.data);
@@ -166,6 +275,17 @@ async function scanCodex(force = false) {
 
 function fetchCodexUsage(token) {
     return new Promise((resolve) => {
+        let settled = false;
+        const done = (val) => {
+            if (settled) return;
+            settled = true;
+            resolve(val);
+        };
+
+        const timer = setTimeout(() => {
+            done({ success: false, message: 'Quá thời gian kết nối tới máy chủ ChatGPT (Timeout).' });
+        }, 8000);
+
         const req = https.request({
             hostname: 'chatgpt.com',
             path: '/backend-api/wham/usage',
@@ -179,8 +299,9 @@ function fetchCodexUsage(token) {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
+                clearTimeout(timer);
                 if (res.statusCode !== 200) {
-                    resolve({
+                    done({
                         success: false,
                         statusCode: res.statusCode,
                         message: `Máy chủ ChatGPT trả về mã lỗi ${res.statusCode}.`
@@ -188,17 +309,21 @@ function fetchCodexUsage(token) {
                     return;
                 }
                 try {
-                    resolve({ success: true, statusCode: 200, data: JSON.parse(data) });
+                    done({ success: true, statusCode: 200, data: JSON.parse(data) });
                 } catch {
-                    resolve({ success: false, statusCode: 200, message: 'Lỗi phân tích cú pháp dữ liệu từ ChatGPT.' });
+                    done({ success: false, statusCode: 200, message: 'Lỗi phân tích cú pháp dữ liệu từ ChatGPT.' });
                 }
             });
         });
 
-        req.on('error', (err) => resolve({ success: false, message: `Lỗi kết nối mạng: ${err.message}` }));
+        req.on('error', (err) => {
+            clearTimeout(timer);
+            done({ success: false, message: `Lỗi kết nối mạng: ${err.message}` });
+        });
         req.on('timeout', () => {
             req.destroy();
-            resolve({ success: false, message: 'Quá thời gian kết nối tới máy chủ ChatGPT (Timeout).' });
+            clearTimeout(timer);
+            done({ success: false, message: 'Quá thời gian kết nối tới máy chủ ChatGPT (Timeout).' });
         });
         req.end();
     });

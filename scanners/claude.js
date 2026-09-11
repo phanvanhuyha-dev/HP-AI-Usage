@@ -237,6 +237,91 @@ async function applyLocalSessionLimit(result) {
 }
 
 /**
+const CLAUDE_CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e';
+
+async function refreshClaudeToken(creds, credPath) {
+    const refreshToken = creds?.claudeAiOauth?.refreshToken;
+    if (!refreshToken) return null;
+
+    try {
+        const result = await new Promise((resolve) => {
+            let settled = false;
+            const done = (val) => {
+                if (settled) return;
+                settled = true;
+                resolve(val);
+            };
+
+            const timer = setTimeout(() => {
+                done({ success: false });
+            }, 10000);
+
+            const body = JSON.stringify({
+                grant_type: 'refresh_token',
+                refresh_token: refreshToken,
+                client_id: CLAUDE_CLIENT_ID
+            });
+
+            const req = https.request({
+                hostname: 'platform.claude.com',
+                path: '/v1/oauth/token',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(body)
+                },
+                timeout: 8000
+            }, (res) => {
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    clearTimeout(timer);
+                    if (res.statusCode !== 200) {
+                        return done({ success: false, statusCode: res.statusCode });
+                    }
+                    try {
+                        done({ success: true, data: JSON.parse(data) });
+                    } catch {
+                        done({ success: false });
+                    }
+                });
+            });
+
+            req.on('error', () => {
+                clearTimeout(timer);
+                done({ success: false });
+            });
+            req.on('timeout', () => {
+                req.destroy();
+                clearTimeout(timer);
+                done({ success: false });
+            });
+            req.write(body);
+            req.end();
+        });
+
+        if (result.success && result.data?.access_token) {
+            const now = Date.now();
+            creds.claudeAiOauth.accessToken = result.data.access_token;
+            if (result.data.refresh_token) {
+                creds.claudeAiOauth.refreshToken = result.data.refresh_token;
+            }
+            if (result.data.expires_in) {
+                creds.claudeAiOauth.expiresAt = now + result.data.expires_in * 1000;
+            }
+            if (result.data.refresh_token_expires_in) {
+                creds.claudeAiOauth.refreshTokenExpiresAt = now + result.data.refresh_token_expires_in * 1000;
+            }
+            await fsp.writeFile(credPath, JSON.stringify(creds, null, 2), 'utf8');
+            return result.data.access_token;
+        }
+    } catch {
+        // bỏ qua lỗi làm mới mã
+    }
+    return null;
+}
+
+/**
  * Thu thập dữ liệu hạn mức của Claude từ tệp xác thực cục bộ
  */
 async function scanClaude(force = false) {
@@ -257,7 +342,7 @@ async function scanClaude(force = false) {
                 { plan: 'Lỗi định dạng', messageKey: 'claude_bad_credentials' });
         }
 
-        const token = creds.claudeAiOauth?.accessToken || creds.accessToken || process.env.CLAUDE_CODE_OAUTH_TOKEN;
+        let token = creds.claudeAiOauth?.accessToken || creds.accessToken || process.env.CLAUDE_CODE_OAUTH_TOKEN;
         if (!token) {
             return providerResult('claude', 'Claude', 'not_logged_in',
                 'Không tìm thấy mã truy cập (access token) trong tệp thông tin xác thực Claude Code.',
@@ -265,6 +350,12 @@ async function scanClaude(force = false) {
         }
 
         const now = Date.now();
+        const expiresAt = creds.claudeAiOauth?.expiresAt ? Number(creds.claudeAiOauth.expiresAt) : 0;
+        if (expiresAt && now >= expiresAt - 120000) {
+            const refreshed = await refreshClaudeToken(creds, credPath);
+            if (refreshed) token = refreshed;
+        }
+
         const plan = formatClaudePlan(creds.claudeAiOauth);
 
         // Bộ đệm trên đĩa có thể được ghi từ phiên bản cũ, hoặc người dùng vừa
@@ -295,11 +386,6 @@ async function scanClaude(force = false) {
         }
 
         // 1. Đang trong thời gian hạ nhiệt do Anthropic trả về 429 Rate Limit.
-        //
-        // Nhánh này phải LUÔN thoát. Bản cũ chỉ thoát khi đã có bộ đệm, nên đúng
-        // vào lúc chưa có dữ liệu, tức máy mới cài hoặc lần đồng bộ đầu tiên thất
-        // bại, thời gian hạ nhiệt không chặn gì cả: bộ hẹn giờ nền vẫn bắn yêu cầu
-        // mỗi 15 giây trong khi nhật ký báo là đang tạm dừng.
         if (now < claudeRateLimitCooldownUntil) {
             return staleClaudeResult('rate_limited', claudeRateLimitCooldownUntil) || providerResult(
                 'claude', 'Claude', 'error',
@@ -318,7 +404,16 @@ async function scanClaude(force = false) {
         }
 
         // 3. Thực hiện truy vấn mạng tới máy chủ Anthropic
-        const response = await fetchClaudeUsage(token);
+        let response = await fetchClaudeUsage(token);
+
+        // Nếu gặp 401 (mã hết hạn), thử tự động làm mới mã rồi gọi lại một lần
+        if (response.statusCode === 401) {
+            const refreshed = await refreshClaudeToken(creds, credPath);
+            if (refreshed) {
+                token = refreshed;
+                response = await fetchClaudeUsage(token);
+            }
+        }
 
         if (response.success && response.data) {
             cachedClaudeResult = buildClaudeResult(response.data, new Date().toISOString(), plan);
@@ -364,6 +459,17 @@ async function scanClaude(force = false) {
 
 function fetchClaudeUsage(token) {
     return new Promise((resolve) => {
+        let settled = false;
+        const done = (val) => {
+            if (settled) return;
+            settled = true;
+            resolve(val);
+        };
+
+        const timer = setTimeout(() => {
+            done({ success: false, message: 'Quá thời gian kết nối tới máy chủ Anthropic (Timeout).' });
+        }, 8000);
+
         const req = https.request({
             hostname: 'api.anthropic.com',
             path: '/api/oauth/usage',
@@ -378,16 +484,17 @@ function fetchClaudeUsage(token) {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
+                clearTimeout(timer);
                 if (res.statusCode === 200) {
                     try {
-                        resolve({ success: true, data: JSON.parse(data) });
+                        done({ success: true, data: JSON.parse(data) });
                     } catch (e) {
-                        resolve({ success: false, statusCode: res.statusCode, message: 'Lỗi phân tích cú pháp dữ liệu từ Anthropic.' });
+                        done({ success: false, statusCode: res.statusCode, message: 'Lỗi phân tích cú pháp dữ liệu từ Anthropic.' });
                     }
                 } else {
                     const retryHeader = res.headers['retry-after'];
                     const retrySec = retryHeader ? parseInt(retryHeader, 10) : null;
-                    resolve({
+                    done({
                         success: false,
                         statusCode: res.statusCode,
                         retryAfterSec: Number.isFinite(retrySec) ? retrySec : null,
@@ -397,10 +504,14 @@ function fetchClaudeUsage(token) {
             });
         });
 
-        req.on('error', (err) => resolve({ success: false, message: `Lỗi kết nối mạng: ${err.message}` }));
+        req.on('error', (err) => {
+            clearTimeout(timer);
+            done({ success: false, message: `Lỗi kết nối mạng: ${err.message}` });
+        });
         req.on('timeout', () => {
             req.destroy();
-            resolve({ success: false, message: 'Quá thời gian kết nối tới máy chủ Anthropic (Timeout).' });
+            clearTimeout(timer);
+            done({ success: false, message: 'Quá thời gian kết nối tới máy chủ Anthropic (Timeout).' });
         });
         req.end();
     });
